@@ -21,6 +21,7 @@ import Orders from "@/pages/Orders";
 import OrderDetail from "@/pages/OrderDetail";
 import Profile from "@/pages/Profile";
 import Wishlist from "@/pages/Wishlist";
+import SearchPage from "@/pages/Search";
 
 import SellerDashboard from "@/pages/seller/Dashboard";
 import SellerProducts from "@/pages/seller/Products";
@@ -88,6 +89,12 @@ function Router() {
 
       <Route path="/signup">
         <Signup />
+      </Route>
+
+      <Route path="/search">
+        <BuyerLayout>
+          <SearchPage />
+        </BuyerLayout>
       </Route>
 
       <Route path="/product/:id">
