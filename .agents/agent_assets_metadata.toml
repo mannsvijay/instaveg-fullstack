@@ -1,0 +1,44 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "H67LcNOYIjwbj79AoKwpQ"
+uri = "file://artifacts/instaveg/public/images/broccoli.png"
+type = "image"
+title = "Broccoli product photo"
+
+[[generated]]
+id = "YUlktyuiIySHkE_ZyH0v3"
+uri = "file://artifacts/instaveg/public/images/carrots.png"
+type = "image"
+title = "Carrots product photo"
+
+[[generated]]
+id = "ir6VeLR56RZiXGSRGtGvE"
+uri = "file://artifacts/instaveg/public/images/spinach.png"
+type = "image"
+title = "Spinach product photo"
+
+[[generated]]
+id = "EJjCQTtwLFAFfGR20Li6r"
+uri = "file://artifacts/instaveg/public/images/tomatoes.png"
+type = "image"
+title = "Tomatoes product photo"
+
+[[generated]]
+id = "d2w4MQ_c28PX2Lbu1r2Pl"
+uri = "file://artifacts/instaveg/public/images/cat_leafy.png"
+type = "image"
+title = "Leafy veg category"
+
+[[generated]]
+id = "4r4OJY0jWuNT7BysNdkw1"
+uri = "file://artifacts/instaveg/public/images/cat_root.png"
+type = "image"
+title = "Root veg category"
+
+[[generated]]
+id = "l-dV1ABbqoZcu8kfREFY0"
+uri = "file://artifacts/instaveg/public/images/cat_fruits.png"
+type = "image"
+title = "Fruits category"

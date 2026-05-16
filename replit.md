@@ -1,44 +1,82 @@
-# [Project name]
+# InstaVEG
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A production-grade hyperlocal vegetable marketplace connecting local farmers directly with buyers in their neighbourhood.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
+- `pnpm --filter @workspace/instaveg run dev` — run the frontend (port assigned by Replit)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/scripts run seed` — seed demo accounts + products
+- Required env: `DATABASE_URL` — Postgres connection string, `SESSION_SECRET` — JWT signing secret
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
+- Frontend: React + Vite + Tailwind CSS + Zustand + Framer Motion + shadcn/ui
+- API: Express 5 + Pino logging
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
+- API codegen: Orval (from OpenAPI spec → React Query hooks + Zod schemas)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/instaveg/` — React + Vite frontend (preview at `/`)
+- `artifacts/api-server/` — Express API server (preview at `/api`)
+- `artifacts/api-server/src/routes/` — Route handlers (auth, products, cart, orders, sellers, users, admin)
+- `lib/db/src/schema/` — Drizzle ORM schema (users, sellers, products, categories, carts, orders, reviews, wishlists, addresses)
+- `lib/api-spec/openapi.yaml` — OpenAPI spec (source of truth for codegen)
+- `lib/api-client-react/src/generated/` — Generated React Query hooks (do not edit)
+- `scripts/src/seed.ts` — Demo data seed script
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Contract-first API: OpenAPI spec → Orval codegen → typed hooks. Never edit generated files.
+- JWT auth stored in Zustand (in-memory) + `setAuthTokenGetter` wired into custom fetch so all hooks automatically send Bearer tokens.
+- Multi-vendor cart: items grouped by seller at checkout. Each order item tracks `sellerId`.
+- Seller approval flow: sellers register → admin approves → seller can list products.
+- Role-based routing: Buyer, Seller, Admin each have dedicated layout + route namespace.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+**Buyer:** Browse categories, search products, view product details with reviews, add to cart/wishlist, checkout with COD or Razorpay, track orders.
+
+**Seller:** Register store, manage product listings, view/advance order status, analytics dashboard with revenue charts.
+
+**Admin:** Approve/reject sellers, manage all users and orders, platform-wide analytics.
+
+## Demo Accounts
+
+| Role   | Email                  | Password  |
+|--------|------------------------|-----------|
+| Admin  | admin@instaveg.com     | admin123  |
+| Seller | ramesh@instaveg.com    | seller123 |
+| Seller | priya@instaveg.com     | seller123 |
+| Buyer  | buyer@instaveg.com     | buyer123  |
+
+## Design System
+
+- Background: `#F6FCDF` (earthy cream-green)
+- Primary: `#31511E` (deep forest green)
+- Accent: `#859F3D` (olive green)
+- Animations: Framer Motion (stagger, fade, slide)
+- Components: shadcn/ui base + custom Tailwind
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Earthy green theme throughout — no blues or grays as primary colors
+- Keep all demo accounts seeded and re-runnable (`onConflictDoUpdate`)
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Always run `pnpm --filter @workspace/api-spec run codegen` after changing `openapi.yaml`
+- The scripts package needs `@workspace/db` as a runtime dep for the seed script
+- Vite preview is proxied — use relative URLs, not `localhost:8080` directly
+- `OrderStatusUpdate.status` is a const-enum type — cast with `as any` when passing string values from UI dropdowns
 
 ## Pointers
 

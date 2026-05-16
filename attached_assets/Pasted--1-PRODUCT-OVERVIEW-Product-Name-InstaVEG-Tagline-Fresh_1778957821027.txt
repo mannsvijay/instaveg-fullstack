@@ -1,0 +1,521 @@
+🟢 1. PRODUCT OVERVIEW
+Product Name
+
+InstaVEG
+
+Tagline
+
+Fresh from farms to your door in minutes 🌿
+
+Vision
+
+Build a premium hyperlocal marketplace where users can instantly order fresh vegetables and groceries from nearby farmers/vendors with an ultra-fast, modern, and seamless experience.
+
+The platform should combine:
+
+Blinkit-level convenience
+Apple-level clean design
+Marketplace scalability
+Real-time commerce experience
+🟢 2. CORE OBJECTIVE
+
+Create a fully functional production-ready web platform with:
+
+Buyer and seller accounts
+Real-time ordering
+Modern UI/UX
+Secure payment system
+Multi-vendor architecture
+Scalable backend
+Responsive mobile-first design
+Smooth micro-interactions
+Clean reusable component system
+🟢 3. TARGET USERS
+👤 Buyers
+
+Users who want:
+
+fast delivery
+fresh vegetables
+nearby vendors
+easy checkout
+🧑‍🌾 Sellers
+
+Farmers/vendors who want:
+
+easy inventory management
+direct customer access
+analytics
+order management
+🟢 4. PRODUCT POSITIONING
+
+This is NOT just another grocery app.
+
+This product should feel like:
+
+“A premium farm-to-home ecosystem with modern commerce UX.”
+
+🟢 5. DESIGN SYSTEM
+🎨 COLOR PALETTE (STRICT)
+Primary Background
+
+#F6FCDF
+
+Dark Background
+
+#1A1A19
+
+Primary Green
+
+#31511E
+
+Accent Green
+
+#859F3D
+
+✨ DESIGN LANGUAGE
+Minimal
+Organic
+Soft premium aesthetic
+High whitespace
+Rounded UI
+Subtle shadows
+Smooth transitions
+Glassmorphism in limited areas
+🔤 TYPOGRAPHY
+
+Use:
+
+Inter
+Poppins
+
+Hierarchy:
+
+H1 → Bold
+H2 → Semi-bold
+Body → Regular
+🟢 6. ANIMATION SYSTEM
+
+Use:
+
+Framer Motion
+
+Animations must remain:
+
+subtle
+clean
+premium
+smooth
+Required Microinteractions
+Buttons
+scale on hover
+ripple on click
+Cards
+lift slightly on hover
+soft shadow increase
+Page Transitions
+fade + slide
+Cart Updates
+smooth quantity transitions
+Loading
+skeleton shimmer
+Modals
+blur background
+smooth scale-in
+🟢 7. TECH STACK
+Frontend
+React + Vite
+Tailwind CSS
+Zustand
+React Router DOM
+Framer Motion
+Axios
+Backend
+Node.js
+Express.js
+MongoDB + Mongoose
+JWT Authentication
+bcrypt
+Services
+Razorpay
+Cloudinary
+Socket.io
+Deployment
+
+Frontend:
+
+Vercel
+
+Backend:
+
+Render / Railway
+
+Database:
+
+MongoDB Atlas
+🟢 8. APPLICATION ARCHITECTURE
+FRONTEND STRUCTURE
+src/
+ ├── components/
+ │    ├── ui/
+ │    ├── shared/
+ │    ├── product/
+ │    ├── cart/
+ │    └── seller/
+ │
+ ├── pages/
+ ├── hooks/
+ ├── services/
+ ├── store/
+ ├── layouts/
+ ├── utils/
+ └── routes/
+BACKEND STRUCTURE
+server/
+ ├── controllers/
+ ├── routes/
+ ├── middleware/
+ ├── services/
+ ├── models/
+ ├── config/
+ ├── utils/
+ └── sockets/
+🟢 9. USER ROLES
+Buyer
+
+Can:
+
+browse products
+add to cart
+place orders
+track orders
+review products
+Seller
+
+Can:
+
+manage products
+manage stock
+view orders
+manage profile
+see analytics
+Admin
+
+Can:
+
+manage users
+approve sellers
+monitor orders
+manage platform
+🟢 10. FRONTEND ROUTES
+PUBLIC ROUTES
+/
+ /login
+ /signup
+ /seller-signup
+ /product/:id
+ /category/:slug
+BUYER ROUTES
+/cart
+/checkout
+/orders
+/orders/:id
+/profile
+/wishlist
+/notifications
+SELLER ROUTES
+/seller/dashboard
+/seller/products
+/seller/add-product
+/seller/orders
+/seller/analytics
+/seller/settings
+ADMIN ROUTES
+/admin
+/admin/users
+/admin/orders
+/admin/sellers
+/admin/products
+🟢 11. SCREEN DESIGN SPECIFICATIONS
+📱 AUTH SCREEN
+Features
+Email login
+Password login
+Google login
+Buyer/Seller switch
+Validation
+UI
+Center glass card
+Organic gradient background
+Animated leaf icon
+Effects
+floating labels
+smooth focus states
+button glow
+🏠 HOME SCREEN
+Sections
+Sticky Header
+location
+notification icon
+profile avatar
+Smart Search
+instant search
+suggestions
+trending keywords
+Categories Carousel
+animated horizontal cards
+Hero Banner
+rotating offers
+Fresh Picks
+dynamic product grid
+Nearby Sellers
+seller cards with distance
+Trending Products
+based on orders
+Bottom Navigation
+animated icons
+🛍️ PRODUCT CARD
+Elements
+image
+name
+price
+rating
+quick add button
+freshness badge
+Effects
+hover lift
+scale interaction
+animated add button
+📄 PRODUCT DETAIL SCREEN
+Sections
+image carousel
+product info
+nutrition info
+reviews
+seller card
+sticky add-to-cart
+Features
+quantity selector
+reviews
+seller verification badge
+🛒 CART SCREEN
+Features
+multi-vendor grouping
+coupon input
+delivery ETA
+bill breakdown
+UX
+sticky checkout
+animated item removal
+💳 CHECKOUT SCREEN
+Sections
+address selection
+payment selection
+delivery slot
+order summary
+Features
+Razorpay integration
+payment retry
+save address
+📦 ORDER TRACKING SCREEN
+Features
+status timeline
+ETA
+seller contact
+live updates
+🧑‍🌾 SELLER DASHBOARD
+Sections
+overview cards
+revenue
+orders
+analytics
+inventory
+Features
+quick edit
+low stock alerts
+charts
+👤 PROFILE SCREEN
+Features
+addresses
+order history
+settings
+saved items
+🟢 12. REUSABLE COMPONENT SYSTEM
+Core Components
+Button
+Input
+Modal
+Drawer
+Toast
+Loader
+Navbar
+Sidebar
+BottomNav
+Commerce Components
+ProductCard
+CartItem
+CategoryCard
+SellerCard
+OrderCard
+ReviewCard
+🟢 13. DATABASE SCHEMA
+USER
+name
+email
+password
+role
+phone
+addresses[]
+wishlist[]
+createdAt
+PRODUCT
+name
+description
+price
+images[]
+category
+stock
+sellerId
+rating
+reviews[]
+nutritionInfo
+createdAt
+CART
+userId
+items[]
+updatedAt
+ORDER
+userId
+sellerId
+items[]
+status
+paymentStatus
+deliveryFee
+platformFee
+ETA
+createdAt
+🟢 14. ADVANCED FEATURES
+⚡ REAL-TIME SYSTEM
+
+Use Socket.io for:
+
+cart sync
+order updates
+notifications
+🧠 SMART RECOMMENDATIONS
+based on orders
+based on cart
+trending nearby
+📍 LOCATION SYSTEM
+nearest sellers
+delivery radius
+ETA logic
+🎯 GAMIFICATION
+coins
+streaks
+rewards
+🔔 NOTIFICATIONS
+order accepted
+delivered
+offers
+🧾 INVOICE SYSTEM
+downloadable invoices
+🟢 15. PERFORMANCE REQUIREMENTS
+lazy loading
+image optimization
+debounced search
+pagination
+caching ready
+🟢 16. SECURITY REQUIREMENTS
+JWT authentication
+bcrypt hashing
+protected routes
+input validation
+role middleware
+🟢 17. CODE QUALITY REQUIREMENTS
+
+The codebase must be:
+
+modular
+reusable
+scalable
+production-ready
+maintainable
+🟢 18. UI QUALITY REQUIREMENTS
+
+Avoid:
+
+clutter
+generic AI layouts
+oversized shadows
+inconsistent spacing
+
+Focus on:
+
+whitespace
+premium feel
+smooth interactions
+fast UX
+🟢 19. FINAL AI EXECUTION INSTRUCTION
+Build a production-grade full-stack web application called InstaVEG.
+
+The application must include:
+- Buyer, Seller, and Admin roles
+- Premium minimal UI
+- Hyperlocal grocery marketplace features
+- Multi-vendor cart architecture
+- Real-time updates
+- Razorpay integration
+- Responsive mobile-first design
+- Smooth animations
+- Clean reusable component architecture
+- Scalable backend
+
+Use:
+Frontend:
+- React + Vite
+- Tailwind CSS
+- Zustand
+- Framer Motion
+
+Backend:
+- Node.js
+- Express
+- MongoDB
+
+Design Requirements:
+- Earthy green palette
+- Minimal aesthetic
+- Smooth UX
+- Glassmorphism in selective areas
+- Subtle premium animations
+
+Do not generate generic AI-style UI.
+Focus heavily on spacing, hierarchy, and clean interaction design.
+
+The application must feel modern, fast, and startup-grade.
+
+Build the project in phases:
+1. Backend setup
+2. Authentication
+3. Product system
+4. Cart system
+5. Orders
+6. Payments
+7. Seller dashboard
+8. Admin panel
+9. Real-time features
+10. Optimization and deployment
+🟢 20. FINAL PRODUCT GOAL
+
+The final application should feel:
+
+polished
+premium
+scalable
+modern
+launch-ready
+
+And should realistically be:
+
+portfolio-worthy + startup-capable 🚀
