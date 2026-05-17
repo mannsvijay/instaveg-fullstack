@@ -1,5 +1,5 @@
 import { ReactNode, useState, useEffect, useRef } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useRoute } from "wouter";
 import { ShoppingCart, User, Home, Search, Heart, Menu, X, Leaf } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,13 @@ function CartCount() {
 
 export default function BuyerLayout({ children }: { children: ReactNode }) {
   const { user } = useAuthStore();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [searchOpen, setSearchOpen] = useState(false);
+
+  const navActive = (path: string) =>
+    (path === "/" ? location === "/" : location.startsWith(path))
+      ? "text-primary"
+      : "text-muted-foreground hover:text-primary";
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -153,26 +158,26 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-border/40 bg-background/90 backdrop-blur-md z-50">
         <div className="flex items-center justify-around h-16 px-4">
-          <Link href="/" className="flex flex-col items-center gap-1 text-primary">
+          <Link href="/" className={`flex flex-col items-center gap-1 transition-colors ${navActive("/")}`}>
             <Home className="w-5 h-5" />
             <span className="text-[10px] font-medium">Home</span>
           </Link>
-          <Link href="/category/all" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+          <Link href="/category/all" className={`flex flex-col items-center gap-1 transition-colors ${navActive("/category")}`}>
             <Menu className="w-5 h-5" />
             <span className="text-[10px] font-medium">Categories</span>
           </Link>
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary"
+            className={`flex flex-col items-center gap-1 transition-colors ${navActive("/search")}`}
           >
             <Search className="w-5 h-5" />
             <span className="text-[10px] font-medium">Search</span>
           </button>
-          <Link href="/wishlist" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+          <Link href="/wishlist" className={`flex flex-col items-center gap-1 transition-colors ${navActive("/wishlist")}`}>
             <Heart className="w-5 h-5" />
             <span className="text-[10px] font-medium">Wishlist</span>
           </Link>
-          <Link href="/profile" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+          <Link href="/profile" className={`flex flex-col items-center gap-1 transition-colors ${navActive("/profile")}`}>
             <User className="w-5 h-5" />
             <span className="text-[10px] font-medium">Profile</span>
           </Link>

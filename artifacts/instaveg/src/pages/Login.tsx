@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Login() {
@@ -55,6 +55,15 @@ export default function Login() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md relative z-10"
       >
+        {/* Back button */}
+        <button
+          onClick={() => window.history.length > 1 ? window.history.back() : setLocation("/")}
+          className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors mb-6 text-sm"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+
         <div className="text-center mb-8">
           <Link href="/" className="font-serif text-3xl font-bold text-primary tracking-tight">InstaVEG</Link>
           <p className="text-muted-foreground mt-2">Sign in to your account</p>
