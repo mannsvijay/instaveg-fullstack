@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "H67LcNOYIjwbj79AoKwpQ"
@@ -42,3 +41,9 @@ id = "l-dV1ABbqoZcu8kfREFY0"
 uri = "file://artifacts/instaveg/public/images/cat_fruits.png"
 type = "image"
 title = "Fruits category"
+
+[[outputs]]
+id = "GECkSjjw6B3H4j1Y7U-hl"
+uri = "file://README.md"
+type = "text"
+title = "InstaVEG README"
