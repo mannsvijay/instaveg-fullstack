@@ -57,7 +57,7 @@ export default function Login() {
       >
         {/* Back button */}
         <button
-          onClick={() => window.history.length > 1 ? window.history.back() : setLocation("/")}
+          onClick={() => setLocation("/")}
           className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors mb-6 text-sm"
         >
           <ArrowLeft className="w-4 h-4" />

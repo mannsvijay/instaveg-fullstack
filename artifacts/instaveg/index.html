@@ -13,6 +13,18 @@
     <meta name="twitter:title" content="InstaVEG" />
     <meta name="twitter:description" content="InstaVEG — built on Replit. Update this description to reflect the app." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      /* Hide Replit badge */
+      #replit-badge-container,
+      [data-replit-badge],
+      .replit-badge,
+      iframe[src*="replit.com/badge"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
