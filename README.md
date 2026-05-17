@@ -4,7 +4,7 @@
 
 InstaVEG connects local farmers and vegetable sellers directly with buyers in their neighbourhood. Browse 30+ fresh vegetables and fruits, add to cart, and checkout — all in under 30 seconds.
 
-🔗 **Live App:** [https://0b3b7d47-1b55-4b6b-b0fd-6b4041afaf39-00-3gy1xxxy8ilep.pike.replit.dev](https://0b3b7d47-1b55-4b6b-b0fd-6b4041afaf39-00-3gy1xxxy8ilep.pike.replit.dev)
+🔗 **Live App:** [Link](https://green-mart-connect--mnvj69.replit.app/)
 
 ---
 
@@ -221,6 +221,3 @@ pnpm --filter @workspace/scripts run seed
 3. Run `pnpm run typecheck` before pushing — zero TypeScript errors required
 4. Push DB schema changes with `pnpm --filter @workspace/db run push`
 
----
-
-<p align="center">Built with 💚 on Replit — fresh like the vegetables we deliver.</p>
