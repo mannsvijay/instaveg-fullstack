@@ -4,7 +4,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useState, useEffect } from "react";
 import NotFound from "@/pages/not-found";
+import AppLoader from "@/components/AppLoader";
 
 import BuyerLayout from "@/layouts/BuyerLayout";
 import SellerLayout from "@/layouts/SellerLayout";
@@ -252,9 +254,17 @@ function Router() {
 }
 
 function App() {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 1600);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <AppLoader show={loading} />
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <Router />
         </WouterRouter>
