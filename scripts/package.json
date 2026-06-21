@@ -8,6 +8,7 @@
     "seed": "tsx ./src/seed.ts",
     "update-products": "tsx ./src/update-products.ts",
     "fix-images": "tsx ./src/fix-images.ts",
+    "dedup": "tsx ./src/dedup.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

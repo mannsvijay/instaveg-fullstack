@@ -51,12 +51,13 @@ A production-grade hyperlocal vegetable marketplace connecting local farmers dir
 
 ## Demo Accounts
 
-| Role   | Email                  | Password  |
-|--------|------------------------|-----------|
-| Admin  | admin@instaveg.com     | admin123  |
-| Seller | ramesh@instaveg.com    | seller123 |
-| Seller | priya@instaveg.com     | seller123 |
-| Buyer  | buyer@instaveg.com     | buyer123  |
+| Role   | Email                  | Password  | Store                  |
+|--------|------------------------|-----------|------------------------|
+| Admin  | admin@instaveg.com     | admin123  | —                      |
+| Seller | ramesh@instaveg.com    | seller123 | Ramesh Fresh Farm      |
+| Seller | priya@instaveg.com     | seller123 | Priya Organic Greens   |
+| Seller | arjun@instaveg.com     | seller123 | Arjun Exotic Harvest   |
+| Buyer  | buyer@instaveg.com     | buyer123  | —                      |
 
 ## Design System
 

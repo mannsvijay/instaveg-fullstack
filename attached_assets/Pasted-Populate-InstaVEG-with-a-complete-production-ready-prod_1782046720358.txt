@@ -1,0 +1,119 @@
+Populate InstaVEG with a complete production-ready product catalog.
+
+Requirements:
+
+1. Create 30-50 realistic products across multiple categories:
+   - Leafy Vegetables
+   - Root Vegetables
+   - Fruits
+   - Exotic Vegetables
+   - Organic Produce
+   - Herbs & Seasonings
+   - Seasonal Specials
+
+2. Each product must include:
+   - Product Name
+   - Category
+   - Description
+   - Price
+   - Unit (kg, bunch, piece, pack, etc.)
+   - Stock Quantity
+   - Freshness Badge (Fresh Today, Organic, Best Seller, Seasonal, etc.)
+   - Nutrition Information
+   - Seller Information
+   - Ratings
+   - Reviews Count
+   - High-quality product image
+
+3. Images:
+   - Use only accurate, high-quality, royalty-free product images.
+   - Every product must have the correct image corresponding to that specific fruit or vegetable.
+   - No placeholders, duplicate images, broken links, or mismatched products.
+   - Optimize images for fast loading and responsive display.
+
+4. Search & Filtering:
+   - All products must be searchable by:
+     - Product Name
+     - Category
+     - Seller
+     - Tags
+   - Implement instant search with debouncing.
+   - Support category filtering and sorting.
+
+5. Product Experience:
+   - Products should appear correctly on:
+     - Home Page
+     - Category Pages
+     - Search Results
+     - Product Details Page
+     - Seller Pages
+   - Quick Add to Cart functionality must work directly from product cards.
+   - Quantity selectors should update cart state instantly.
+
+6. Cart Integration:
+   - Every product must be fully connected to the cart system.
+   - Add to Cart, Remove, Update Quantity, and Cart Persistence should work flawlessly.
+   - Cart totals should update in real time.
+
+7. Product Categories Example:
+
+   Leafy Vegetables:
+   - Spinach
+   - Lettuce
+   - Fenugreek
+   - Kale
+   - Cabbage
+   - Coriander
+
+   Root Vegetables:
+   - Potato
+   - Onion
+   - Carrot
+   - Beetroot
+   - Radish
+   - Sweet Potato
+
+   Fruits:
+   - Apple
+   - Banana
+   - Mango
+   - Orange
+   - Grapes
+   - Watermelon
+   - Papaya
+   - Pomegranate
+
+   Exotic:
+   - Avocado
+   - Broccoli
+   - Zucchini
+   - Asparagus
+   - Bell Peppers
+
+   Organic:
+   - Organic Tomato
+   - Organic Spinach
+   - Organic Carrot
+   - Organic Cucumber
+
+   Herbs:
+   - Mint
+   - Basil
+   - Curry Leaves
+   - Parsley
+   - Rosemary
+
+8. Data Quality:
+   - Product names, descriptions, prices, units, and nutrition values must be realistic.
+   - Generate believable ratings and review counts.
+   - Ensure there are no duplicate products.
+   - Product IDs and slugs should be unique.
+
+9. Technical Requirements:
+   - Generate database seed data.
+   - Create reusable image mapping.
+   - Ensure all products load correctly through APIs.
+   - Ensure search, filters, product pages, and cart functionality work with every product.
+
+10. Final Goal:
+   The product catalog should feel like a real-world marketplace similar to Blinkit, Zepto, Instacart, or BigBasket, with production-quality data, visuals, and user experience.
