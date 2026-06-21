@@ -1,0 +1,63 @@
+Publishing is failing and I need you to fully diagnose and fix the issue so the application can successfully build and publish to production.
+
+Current build error:
+
+Error: PORT environment variable is required but was not provided.
+
+Build output:
+
+artifacts/mockup-sandbox build$ vite build
+failed to load config
+Error: PORT environment variable is required but was not provided.
+
+Tasks:
+
+1. Find the exact file causing this error.
+   - Search the entire repository for:
+     - process.env.PORT
+     - PORT environment variable is required
+     - env.PORT
+     - any custom environment validation logic
+
+2. Determine why PORT is being required during BUILD time.
+   - A Vite build should not require a runtime PORT.
+   - PORT should only be needed when the server starts.
+
+3. Fix the issue properly.
+   - Remove build-time dependency on PORT.
+   - Use safe defaults where appropriate:
+     const port = process.env.PORT || 5000
+   - Ensure environment validation only runs at runtime, not during vite build.
+   - Prevent any server initialization code from executing during frontend builds.
+
+4. Check:
+   - vite.config.ts
+   - env validation files
+   - config files
+   - startup scripts
+   - build scripts
+   - workspace packages
+   - artifacts/mockup-sandbox package
+
+5. Run and verify:
+   pnpm build
+
+6. Continue fixing all build errors until:
+   - pnpm build exits successfully with code 0
+   - no TypeScript errors remain
+   - no missing environment variable errors remain
+
+7. Verify publishing readiness:
+   - confirm production build completes successfully
+   - confirm frontend bundle is generated
+   - confirm backend can start correctly
+   - confirm database configuration is unaffected
+
+8. After fixing:
+   - explain root cause
+   - list changed files
+   - show before/after code snippets
+   - confirm the project is ready for Replit Publish
+
+Do not stop after identifying the issue.
+Implement the fixes, validate them with a successful build, and ensure the application is publishable.
