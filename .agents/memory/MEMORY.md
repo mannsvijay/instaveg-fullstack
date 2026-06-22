@@ -1,0 +1,1 @@
+- [MongoDB migration](mongodb-migration.md) — fully migrated from PostgreSQL/Drizzle to MongoDB Atlas/Mongoose; numeric auto-increment IDs via Counter collection.

@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, addressesTable, productsTable, wishlistsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { User, Address, Product, Wishlist } from "@workspace/db";
 import { requireAuth } from "../lib/auth";
 import {
   UpdateUserProfileBody,
@@ -14,58 +13,56 @@ import {
 
 const router = Router();
 
-// Profile
 router.get("/users/profile", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
-  const [found] = await db.select().from(usersTable).where(eq(usersTable.id, user.id));
-  if (!found) {
+  const authUser = (req as typeof req & { user: { id: number } }).user;
+  const user = await User.findById(authUser.id);
+  if (!user) {
     res.status(404).json({ error: "User not found" });
     return;
   }
-  const { password: _pw, ...safeUser } = found;
+  const { password: _pw, ...safeUser } = user.toJSON() as Record<string, unknown>;
   res.json(safeUser);
 });
 
 router.patch("/users/profile", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
+  const authUser = (req as typeof req & { user: { id: number } }).user;
   const parsed = UpdateUserProfileBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [updated] = await db.update(usersTable).set(parsed.data)
-    .where(eq(usersTable.id, user.id)).returning();
-  if (!updated) {
+  const user = await User.findByIdAndUpdate(authUser.id, parsed.data, { new: true });
+  if (!user) {
     res.status(404).json({ error: "User not found" });
     return;
   }
-  const { password: _pw, ...safeUser } = updated;
+  const { password: _pw, ...safeUser } = user.toJSON() as Record<string, unknown>;
   res.json(safeUser);
 });
 
-// Addresses
 router.get("/users/addresses", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
-  const rows = await db.select().from(addressesTable).where(eq(addressesTable.userId, user.id));
-  res.json(rows);
+  const authUser = (req as typeof req & { user: { id: number } }).user;
+  const rows = await Address.find({ userId: authUser.id });
+  res.json(rows.map((a) => a.toJSON()));
 });
 
 router.post("/users/addresses", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
+  const authUser = (req as typeof req & { user: { id: number } }).user;
   const parsed = AddAddressBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
   if (parsed.data.isDefault) {
-    await db.update(addressesTable).set({ isDefault: false }).where(eq(addressesTable.userId, user.id));
+    await Address.updateMany({ userId: authUser.id }, { isDefault: false });
   }
-  const [addr] = await db.insert(addressesTable).values({ ...parsed.data, userId: user.id }).returning();
-  res.status(201).json(addr);
+  const addr = new Address({ ...parsed.data, userId: authUser.id });
+  await addr.save();
+  res.status(201).json(addr.toJSON());
 });
 
 router.patch("/users/addresses/:id", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
+  const authUser = (req as typeof req & { user: { id: number } }).user;
   const params = UpdateAddressParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -77,82 +74,67 @@ router.patch("/users/addresses/:id", requireAuth, async (req, res): Promise<void
     return;
   }
   if (parsed.data.isDefault) {
-    await db.update(addressesTable).set({ isDefault: false }).where(eq(addressesTable.userId, user.id));
+    await Address.updateMany({ userId: authUser.id }, { isDefault: false });
   }
-  const [addr] = await db.update(addressesTable).set(parsed.data)
-    .where(and(eq(addressesTable.id, params.data.id), eq(addressesTable.userId, user.id))).returning();
+  const addr = await Address.findOneAndUpdate(
+    { _id: params.data.id, userId: authUser.id },
+    parsed.data,
+    { new: true },
+  );
   if (!addr) {
     res.status(404).json({ error: "Address not found" });
     return;
   }
-  res.json(addr);
+  res.json(addr.toJSON());
 });
 
 router.delete("/users/addresses/:id", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
+  const authUser = (req as typeof req & { user: { id: number } }).user;
   const params = DeleteAddressParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  await db.delete(addressesTable)
-    .where(and(eq(addressesTable.id, params.data.id), eq(addressesTable.userId, user.id)));
+  await Address.findOneAndDelete({ _id: params.data.id, userId: authUser.id });
   res.sendStatus(204);
 });
 
-// Wishlist
 router.get("/wishlist", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
-  const rows = await db.select({
-    id: productsTable.id,
-    name: productsTable.name,
-    description: productsTable.description,
-    price: productsTable.price,
-    mrp: productsTable.mrp,
-    unit: productsTable.unit,
-    images: productsTable.images,
-    stock: productsTable.stock,
-    sellerId: productsTable.sellerId,
-    categoryId: productsTable.categoryId,
-    rating: productsTable.rating,
-    reviewCount: productsTable.reviewCount,
-    isFresh: productsTable.isFresh,
-    isOrganic: productsTable.isOrganic,
-    nutritionInfo: productsTable.nutritionInfo,
-    tags: productsTable.tags,
-    orderCount: productsTable.orderCount,
-    createdAt: productsTable.createdAt,
-    updatedAt: productsTable.updatedAt,
-  }).from(wishlistsTable)
-    .leftJoin(productsTable, eq(wishlistsTable.productId, productsTable.id))
-    .where(eq(wishlistsTable.userId, user.id));
-  res.json(rows.filter((r) => r.id !== null).map((r) => ({ ...r, sellerName: null, sellerCity: null, categoryName: null })));
+  const authUser = (req as typeof req & { user: { id: number } }).user;
+  const wishlists = await Wishlist.find({ userId: authUser.id });
+  const products = await Promise.all(
+    wishlists.map(async (w) => {
+      const p = await Product.findById(w.productId);
+      if (!p) return null;
+      return { ...p.toJSON(), sellerName: null, sellerCity: null, categoryName: null };
+    }),
+  );
+  res.json(products.filter(Boolean));
 });
 
 router.post("/wishlist/:productId", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
+  const authUser = (req as typeof req & { user: { id: number } }).user;
   const params = AddToWishlistParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const existing = await db.select().from(wishlistsTable)
-    .where(and(eq(wishlistsTable.userId, user.id), eq(wishlistsTable.productId, params.data.productId)));
-  if (existing.length === 0) {
-    await db.insert(wishlistsTable).values({ userId: user.id, productId: params.data.productId });
+  const existing = await Wishlist.findOne({ userId: authUser.id, productId: params.data.productId });
+  if (!existing) {
+    const w = new Wishlist({ userId: authUser.id, productId: params.data.productId });
+    await w.save();
   }
   res.json({ added: true });
 });
 
 router.delete("/wishlist/:productId", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
+  const authUser = (req as typeof req & { user: { id: number } }).user;
   const params = RemoveFromWishlistParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  await db.delete(wishlistsTable)
-    .where(and(eq(wishlistsTable.userId, user.id), eq(wishlistsTable.productId, params.data.productId)));
+  await Wishlist.findOneAndDelete({ userId: authUser.id, productId: params.data.productId });
   res.json({ removed: true });
 });
 

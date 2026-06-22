@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { db, productsTable, sellersTable, categoriesTable, reviewsTable, usersTable } from "@workspace/db";
-import { eq, ilike, and, gte, lte, desc, sql } from "drizzle-orm";
+import { Product, Seller, Category, Review, User } from "@workspace/db";
 import { requireAuth, requireRole } from "../lib/auth";
 import {
   ListProductsQueryParams,
@@ -15,11 +14,9 @@ import {
 
 const router = Router();
 
-async function enrichProduct(product: typeof productsTable.$inferSelect) {
-  const [seller] = await db.select({ storeName: sellersTable.storeName, city: sellersTable.city })
-    .from(sellersTable).where(eq(sellersTable.id, product.sellerId));
-  const [cat] = await db.select({ name: categoriesTable.name })
-    .from(categoriesTable).where(eq(categoriesTable.id, product.categoryId));
+async function enrichProduct(product: Record<string, unknown>) {
+  const seller = await Seller.findById(product.sellerId);
+  const cat = await Category.findById(product.categoryId);
   return {
     ...product,
     sellerName: seller?.storeName ?? null,
@@ -31,22 +28,20 @@ async function enrichProduct(product: typeof productsTable.$inferSelect) {
 router.get("/products/trending", async (req, res): Promise<void> => {
   const params = GetTrendingProductsQueryParams.safeParse(req.query);
   const limit = params.success ? (params.data.limit ?? 10) : 10;
-  const rows = await db.select().from(productsTable)
-    .where(gte(productsTable.stock, 1))
-    .orderBy(desc(productsTable.orderCount))
+  const rows = await Product.find({ stock: { $gte: 1 } })
+    .sort({ orderCount: -1 })
     .limit(limit);
-  const enriched = await Promise.all(rows.map(enrichProduct));
+  const enriched = await Promise.all(rows.map((p) => enrichProduct(p.toJSON())));
   res.json(enriched);
 });
 
 router.get("/products/fresh-picks", async (req, res): Promise<void> => {
   const params = GetFreshPicksQueryParams.safeParse(req.query);
   const limit = params.success ? (params.data.limit ?? 10) : 10;
-  const rows = await db.select().from(productsTable)
-    .where(and(eq(productsTable.isFresh, true), gte(productsTable.stock, 1)))
-    .orderBy(desc(productsTable.createdAt))
+  const rows = await Product.find({ isFresh: true, stock: { $gte: 1 } })
+    .sort({ createdAt: -1 })
     .limit(limit);
-  const enriched = await Promise.all(rows.map(enrichProduct));
+  const enriched = await Promise.all(rows.map((p) => enrichProduct(p.toJSON())));
   res.json(enriched);
 });
 
@@ -58,31 +53,29 @@ router.get("/products", async (req, res): Promise<void> => {
   }
   const { category, search, sellerId, page = 1, limit = 20, minPrice, maxPrice, inStock } = params.data;
 
-  const conditions = [];
-
-  if (search) conditions.push(ilike(productsTable.name, `%${search}%`));
-  if (sellerId) conditions.push(eq(productsTable.sellerId, sellerId));
-  if (minPrice !== undefined) conditions.push(gte(productsTable.price, minPrice));
-  if (maxPrice !== undefined) conditions.push(lte(productsTable.price, maxPrice));
-  if (inStock) conditions.push(gte(productsTable.stock, 1));
+  const filter: Record<string, unknown> = {};
+  if (search) filter.name = { $regex: search, $options: "i" };
+  if (sellerId) filter.sellerId = sellerId;
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    filter.price = {};
+    if (minPrice !== undefined) (filter.price as Record<string, number>).$gte = minPrice;
+    if (maxPrice !== undefined) (filter.price as Record<string, number>).$lte = maxPrice;
+  }
+  if (inStock) filter.stock = { $gte: 1 };
 
   if (category) {
-    const [cat] = await db.select({ id: categoriesTable.id }).from(categoriesTable)
-      .where(eq(categoriesTable.slug, category));
-    if (cat) conditions.push(eq(productsTable.categoryId, cat.id));
+    const cat = await Category.findOne({ slug: category });
+    if (cat) filter.categoryId = cat._id;
   }
 
   const offset = (page - 1) * limit;
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const [total, rows] = await Promise.all([
+    Product.countDocuments(filter),
+    Product.find(filter).sort({ createdAt: -1 }).limit(limit).skip(offset),
+  ]);
 
-  const [totalRow] = await db.select({ count: sql<number>`count(*)::int` }).from(productsTable).where(where);
-  const rows = await db.select().from(productsTable)
-    .where(where)
-    .orderBy(desc(productsTable.createdAt))
-    .limit(limit).offset(offset);
-
-  const enriched = await Promise.all(rows.map(enrichProduct));
-  res.json({ products: enriched, total: totalRow?.count ?? 0, page, limit });
+  const enriched = await Promise.all(rows.map((p) => enrichProduct(p.toJSON())));
+  res.json({ products: enriched, total, page, limit });
 });
 
 router.post("/products", requireAuth, requireRole("seller", "admin"), async (req, res): Promise<void> => {
@@ -93,18 +86,15 @@ router.post("/products", requireAuth, requireRole("seller", "admin"), async (req
     return;
   }
 
-  const [seller] = await db.select().from(sellersTable).where(eq(sellersTable.userId, user.id));
+  const seller = await Seller.findOne({ userId: user.id });
   if (!seller) {
     res.status(403).json({ error: "Seller profile not found" });
     return;
   }
 
-  const [product] = await db.insert(productsTable).values({
-    ...parsed.data,
-    sellerId: seller.id,
-  }).returning();
-
-  res.status(201).json(await enrichProduct(product));
+  const product = new Product({ ...parsed.data, sellerId: seller._id });
+  await product.save();
+  res.status(201).json(await enrichProduct(product.toJSON()));
 });
 
 router.get("/products/:id", async (req, res): Promise<void> => {
@@ -113,12 +103,12 @@ router.get("/products/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const [product] = await db.select().from(productsTable).where(eq(productsTable.id, params.data.id));
+  const product = await Product.findById(params.data.id);
   if (!product) {
     res.status(404).json({ error: "Product not found" });
     return;
   }
-  res.json(await enrichProduct(product));
+  res.json(await enrichProduct(product.toJSON()));
 });
 
 router.patch("/products/:id", requireAuth, requireRole("seller", "admin"), async (req, res): Promise<void> => {
@@ -132,13 +122,12 @@ router.patch("/products/:id", requireAuth, requireRole("seller", "admin"), async
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [product] = await db.update(productsTable).set(parsed.data)
-    .where(eq(productsTable.id, params.data.id)).returning();
+  const product = await Product.findByIdAndUpdate(params.data.id, parsed.data, { new: true });
   if (!product) {
     res.status(404).json({ error: "Product not found" });
     return;
   }
-  res.json(await enrichProduct(product));
+  res.json(await enrichProduct(product.toJSON()));
 });
 
 router.delete("/products/:id", requireAuth, requireRole("seller", "admin"), async (req, res): Promise<void> => {
@@ -147,32 +136,25 @@ router.delete("/products/:id", requireAuth, requireRole("seller", "admin"), asyn
     res.status(400).json({ error: params.error.message });
     return;
   }
-  await db.delete(productsTable).where(eq(productsTable.id, params.data.id));
+  await Product.findByIdAndDelete(params.data.id);
   res.sendStatus(204);
 });
 
-// Reviews
 router.get("/products/:id/reviews", async (req, res): Promise<void> => {
-  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
-  const rows = await db.select({
-    id: reviewsTable.id,
-    productId: reviewsTable.productId,
-    userId: reviewsTable.userId,
-    rating: reviewsTable.rating,
-    comment: reviewsTable.comment,
-    createdAt: reviewsTable.createdAt,
-    userName: usersTable.name,
-    userAvatar: usersTable.avatar,
-  }).from(reviewsTable)
-    .leftJoin(usersTable, eq(reviewsTable.userId, usersTable.id))
-    .where(eq(reviewsTable.productId, id))
-    .orderBy(desc(reviewsTable.createdAt));
-  res.json(rows);
+  const id = parseInt(req.params.id as string, 10);
+  const reviews = await Review.find({ productId: id }).sort({ createdAt: -1 });
+  const enriched = await Promise.all(
+    reviews.map(async (r) => {
+      const user = await User.findById(r.userId).select("name avatar");
+      return { ...r.toJSON(), userName: user?.name ?? null, userAvatar: user?.avatar ?? null };
+    }),
+  );
+  res.json(enriched);
 });
 
 router.post("/products/:id/reviews", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
-  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  const authUser = (req as typeof req & { user: { id: number } }).user;
+  const id = parseInt(req.params.id as string, 10);
   const { rating, comment } = req.body;
 
   if (!rating || rating < 1 || rating > 5) {
@@ -180,24 +162,15 @@ router.post("/products/:id/reviews", requireAuth, async (req, res): Promise<void
     return;
   }
 
-  const [review] = await db.insert(reviewsTable).values({
-    productId: id,
-    userId: user.id,
-    rating,
-    comment,
-  }).returning();
+  const review = new Review({ productId: id, userId: authUser.id, rating, comment });
+  await review.save();
 
-  // Update product average rating
-  const allReviews = await db.select({ rating: reviewsTable.rating }).from(reviewsTable)
-    .where(eq(reviewsTable.productId, id));
+  const allReviews = await Review.find({ productId: id });
   const avg = allReviews.reduce((acc, r) => acc + r.rating, 0) / allReviews.length;
-  await db.update(productsTable).set({ rating: avg, reviewCount: allReviews.length })
-    .where(eq(productsTable.id, id));
+  await Product.findByIdAndUpdate(id, { rating: avg, reviewCount: allReviews.length });
 
-  const [userData] = await db.select({ name: usersTable.name, avatar: usersTable.avatar })
-    .from(usersTable).where(eq(usersTable.id, user.id));
-
-  res.status(201).json({ ...review, userName: userData?.name ?? null, userAvatar: userData?.avatar ?? null });
+  const user = await User.findById(authUser.id).select("name avatar");
+  res.status(201).json({ ...review.toJSON(), userName: user?.name ?? null, userAvatar: user?.avatar ?? null });
 });
 
 export default router;
