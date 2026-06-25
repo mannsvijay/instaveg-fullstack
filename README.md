@@ -4,7 +4,6 @@
 
 InstaVEG connects local farmers and vegetable sellers directly with buyers in their neighbourhood. Browse 30+ fresh vegetables and fruits, add to cart, and checkout — all in under 30 seconds.
 
-🔗 **Live App:** [Link](https://green-mart-connect--mnvj69.replit.app/)
 <p align="center">
   <a href="https://green-mart-connect--mnvj69.replit.app/" target="_blank">
     <img src="https://img.shields.io/badge/Live-Demo-success?style=for-the-badge" alt="Live Demo">
