@@ -1,0 +1,178 @@
+I need you to fix ONLY the incorrect or missing product images in my InstaVEG project.
+
+IMPORTANT — STRICT SCOPE:
+This is an IMAGE-ONLY correction task.
+
+Do NOT change:
+- Layout
+- Styling/CSS
+- Components
+- UI structure
+- Product names
+- Product IDs
+- Prices
+- Descriptions
+- Categories
+- Product ordering
+- Product count
+- Filters
+- Pagination
+- Cart logic
+- Authentication
+- APIs
+- Database structure
+- Any other product data
+- Any product image that is already correct
+
+Make the SMALLEST POSSIBLE CHANGE necessary. Do not refactor, restructure, rewrite, or clean up unrelated code.
+
+--------------------------------------------------
+STEP 1 — INSPECT THE EXISTING PROJECT
+--------------------------------------------------
+
+First, locate exactly where the product image sources are defined.
+
+Determine whether the project uses:
+- Local image assets
+- External image URLs
+- A product JSON/data file
+- A database
+- An image mapping/object
+- Another existing image-management approach
+
+PRESERVE THE PROJECT'S EXISTING IMAGE APPROACH.
+
+If products use local assets:
+→ Use/add the correct local image assets following the existing project structure.
+
+If products use external URLs:
+→ Replace ONLY the incorrect URLs with stable, direct image URLs.
+
+Image URLs must be:
+- Publicly accessible
+- Directly renderable in the browser
+- Reliable
+- Not authentication-dependent
+- Not dependent on cookies/referrer access
+- Not broken or temporary
+- Not placeholder images
+
+Do not change the application's existing image-loading architecture.
+
+--------------------------------------------------
+STEP 2 — REPLACE ONLY THESE 12 IMAGES
+--------------------------------------------------
+
+Replace images ONLY for these exact products:
+
+1. Fresh Peas (Matar)
+   → Fresh green peas / pea pods
+
+2. Organic Tomatoes
+   → Raw red tomatoes
+
+3. Bitter Gourd (Karela)
+   → Raw green bitter gourd / karela
+
+4. Bottle Gourd (Lauki)
+   → Raw light-green bottle gourd / lauki
+
+5. Garlic (Lehsun)
+   → Raw garlic bulbs/cloves
+
+6. Ginger (Adrak)
+   → Raw ginger root
+
+7. Fresh Coriander (Dhania)
+   → Fresh coriander/cilantro/dhania leaves
+
+8. Cauliflower (Phool Gobhi)
+   → Raw white cauliflower head
+
+9. Beetroot
+   → Raw beetroot/beets, preferably whole beetroots with leaves or recognizable cut beetroot
+
+10. Methi Leaves (Fenugreek)
+    → Fresh RAW fenugreek/methi leaves ONLY
+
+11. Iceberg Lettuce
+    → A whole iceberg lettuce head
+
+12. Baby Kale
+    → Fresh raw baby kale leaves
+
+--------------------------------------------------
+STEP 3 — IMAGE QUALITY REQUIREMENTS
+--------------------------------------------------
+
+Every replacement image must clearly and unmistakably represent the correct product.
+
+Use images that are:
+- Raw/fresh produce
+- Visually recognizable
+- High enough quality for the existing product card
+- Clean/plain background OR a natural fresh-produce setting
+
+DO NOT use:
+- Cooked food
+- Recipes/dishes
+- Packaged products
+- Product packaging
+- Logos
+- Text-heavy images
+- People
+- Vehicles
+- Animals
+- Unrelated fruits or vegetables
+- Placeholder images
+- Generic images that do not clearly represent the product
+
+For example:
+Methi Leaves must show actual fresh methi/fenugreek leaves, NOT cooked methi.
+Iceberg Lettuce must show an iceberg lettuce head, NOT parsley or other leafy herbs.
+
+--------------------------------------------------
+STEP 4 — DO NOT TOUCH OTHER PRODUCTS
+--------------------------------------------------
+
+This is extremely important.
+
+There are many other products in InstaVEG whose images are already correct.
+
+DO NOT replace, optimize, resize, reorganize, or otherwise modify ANY image outside these 12 products.
+
+The following 12 are the ONLY products allowed to have their image source changed:
+
+Fresh Peas (Matar)
+Organic Tomatoes
+Bitter Gourd (Karela)
+Bottle Gourd (Lauki)
+Garlic (Lehsun)
+Ginger (Adrak)
+Fresh Coriander (Dhania)
+Cauliflower (Phool Gobhi)
+Beetroot
+Methi Leaves (Fenugreek)
+Iceberg Lettuce
+Baby Kale
+
+--------------------------------------------------
+STEP 5 — BROWSER VERIFICATION
+--------------------------------------------------
+
+After making the changes, actually run/open the application and verify the rendered product cards in the browser.
+
+Do NOT rely only on checking the source code.
+
+For each of the 12 products verify:
+
+1. The image loads successfully.
+2. The image is not blank.
+3. The image is not broken.
+4. The image does not return a 404.
+5. The image is publicly accessible.
+6. The displayed image actually matches the product.
+7. The image fits the existing product card correctly.
+8. No other product's image was changed.
+
+If an image URL fails to load, replace it with another reliable image source before finishing.
