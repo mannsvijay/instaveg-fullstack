@@ -1,28 +1,20 @@
-import mongoose from "mongoose";
+import { drizzle } from "drizzle-orm/node-postgres";
+import pg from "pg";
+import * as schema from "./schema";
 
-export async function connectDB(): Promise<void> {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error("MONGODB_URI environment variable is not set");
-  await mongoose.connect(uri);
+const { Pool } = pg;
+
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database?",
+  );
 }
 
-export { User } from "./models/user.js";
-export { Seller } from "./models/seller.js";
-export { Category } from "./models/category.js";
-export { Product } from "./models/product.js";
-export { Cart } from "./models/cart.js";
-export { Order } from "./models/order.js";
-export { Address } from "./models/address.js";
-export { Review } from "./models/review.js";
-export { Wishlist } from "./models/wishlist.js";
-export { nextId } from "./models/counter.js";
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle(pool, { schema });
 
-export type { IUser } from "./models/user.js";
-export type { ISeller } from "./models/seller.js";
-export type { ICategory } from "./models/category.js";
-export type { IProduct } from "./models/product.js";
-export type { ICart, ICartItem } from "./models/cart.js";
-export type { IOrder, IOrderItem } from "./models/order.js";
-export type { IAddress } from "./models/address.js";
-export type { IReview } from "./models/review.js";
-export type { IWishlist } from "./models/wishlist.js";
+export async function connectDB(): Promise<void> {
+  await pool.query("select 1");
+}
+
+export * from "./schema";

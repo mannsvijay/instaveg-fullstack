@@ -1,57 +1,44 @@
 import { Router } from "express";
-import { Order, Cart, Product, Address, User, Seller } from "@workspace/db";
+import { db, ordersTable, orderItemsTable, cartItemsTable, cartsTable, productsTable, addressesTable, usersTable, sellersTable } from "@workspace/db";
+import { and, desc, eq } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import {
-  CreateOrderBody,
-  GetOrderParams,
-  ListOrdersQueryParams,
-  UpdateOrderStatusParams,
-  UpdateOrderStatusBody,
-  CreatePaymentParams,
-  VerifyPaymentParams,
-  VerifyPaymentBody,
+  CreateOrderBody, GetOrderParams, ListOrdersQueryParams, UpdateOrderStatusParams,
+  UpdateOrderStatusBody, CreatePaymentParams, VerifyPaymentParams, VerifyPaymentBody,
 } from "@workspace/api-zod";
 import crypto from "crypto";
 
 const router = Router();
-
 const PLATFORM_FEE = 5;
 const DELIVERY_FEE = 40;
 
-function enrichOrder(order: Record<string, unknown>, sellerName: string | null, buyerName: string | null) {
+async function enrichOrder(order: typeof ordersTable.$inferSelect) {
+  const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
+  const [seller] = order.sellerId
+    ? await db.select({ storeName: sellersTable.storeName }).from(sellersTable).where(eq(sellersTable.id, order.sellerId))
+    : [null];
+  const [buyer] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, order.userId));
   return {
     ...order,
-    sellerName,
-    buyerName,
-    createdAt: (order.createdAt as Date)?.toISOString?.() ?? order.createdAt,
-    updatedAt: (order.updatedAt as Date)?.toISOString?.() ?? order.updatedAt,
+    items,
+    sellerName: seller?.storeName ?? null,
+    buyerName: buyer?.name ?? null,
+    createdAt: order.createdAt.toISOString(),
+    updatedAt: order.updatedAt.toISOString(),
   };
 }
 
 router.get("/orders", requireAuth, async (req, res): Promise<void> => {
   const user = (req as typeof req & { user: { id: number; role: string } }).user;
-  const params = ListOrdersQueryParams.safeParse(req.query);
-  const { status, page = 1, limit = 20 } = params.success ? params.data : {};
-
-  const filter: Record<string, unknown> = {};
-  if (user.role === "buyer") filter.userId = user.id;
-  if (status) filter.status = status;
-
-  const offset = ((page ?? 1) - 1) * (limit ?? 20);
-  const rows = await Order.find(filter)
-    .sort({ createdAt: -1 })
-    .limit(limit ?? 20)
-    .skip(offset);
-
-  const enriched = await Promise.all(
-    rows.map(async (order) => {
-      const o = order.toJSON() as Record<string, unknown>;
-      const seller = order.sellerId ? await Seller.findById(order.sellerId) : null;
-      const buyer = await User.findById(order.userId);
-      return enrichOrder(o, seller?.storeName ?? null, buyer?.name ?? null);
-    }),
-  );
-  res.json(enriched);
+  const parsed = ListOrdersQueryParams.safeParse(req.query);
+  const { status, page = 1, limit = 20 } = parsed.success ? parsed.data : {};
+  const conditions = [];
+  if (user.role === "buyer") conditions.push(eq(ordersTable.userId, user.id));
+  if (status) conditions.push(eq(ordersTable.status, status));
+  const where = conditions.length ? and(...conditions) : undefined;
+  const rows = await db.select().from(ordersTable).where(where)
+    .orderBy(desc(ordersTable.createdAt)).limit(limit ?? 20).offset(((page ?? 1) - 1) * (limit ?? 20));
+  res.json(await Promise.all(rows.map(enrichOrder)));
 });
 
 router.post("/orders", requireAuth, async (req, res): Promise<void> => {
@@ -62,167 +49,146 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     return;
   }
   const { addressId, paymentMethod, notes } = parsed.data;
-
-  const cart = await Cart.findOne({ userId: user.id });
-  if (!cart || cart.items.length === 0) {
+  const [cart] = await db.select().from(cartsTable).where(eq(cartsTable.userId, user.id));
+  if (!cart) {
+    res.status(400).json({ error: "Cart is empty" });
+    return;
+  }
+  const cartItems = await db.select({
+    productId: cartItemsTable.productId,
+    quantity: cartItemsTable.quantity,
+    price: cartItemsTable.price,
+    name: productsTable.name,
+    images: productsTable.images,
+    unit: productsTable.unit,
+    sellerId: productsTable.sellerId,
+  }).from(cartItemsTable)
+    .leftJoin(productsTable, eq(cartItemsTable.productId, productsTable.id))
+    .where(eq(cartItemsTable.cartId, cart.id));
+  if (cartItems.length === 0) {
     res.status(400).json({ error: "Cart is empty" });
     return;
   }
 
-  const cartItems = await Promise.all(
-    cart.items.map(async (item) => {
-      const product = await Product.findById(item.productId);
-      return { ...item, product };
-    }),
-  );
-
-  const address = addressId ? await Address.findById(addressId) : null;
-  const addressSnapshot = address ? JSON.stringify(address.toJSON()) : null;
-
-  const subtotal = cartItems.reduce((sum, i) => sum + (i.price / 100) * i.quantity, 0);
-  const total = subtotal + DELIVERY_FEE + PLATFORM_FEE;
-
-  const firstSellerId = cartItems[0]?.product?.sellerId ?? null;
-
-  const order = new Order({
+  const [address] = addressId
+    ? await db.select().from(addressesTable).where(eq(addressesTable.id, addressId))
+    : [null];
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.price / 100) * item.quantity, 0);
+  const firstSellerId = cartItems[0]?.sellerId ?? null;
+  const [order] = await db.insert(ordersTable).values({
     userId: user.id,
     sellerId: firstSellerId,
     status: "pending",
     paymentStatus: "pending",
     paymentMethod,
     addressId,
-    addressSnapshot,
+    addressSnapshot: address ? JSON.stringify(address) : null,
     subtotal,
     deliveryFee: DELIVERY_FEE,
     platformFee: PLATFORM_FEE,
-    total,
+    total: subtotal + DELIVERY_FEE + PLATFORM_FEE,
     notes,
-    items: cartItems.map((i) => ({
-      productId: i.productId,
-      quantity: i.quantity,
-      price: i.price / 100,
-      productName: i.product?.name ?? null,
-      productImage: i.product?.images?.[0] ?? null,
-      productUnit: i.product?.unit ?? null,
-      sellerId: i.product?.sellerId ?? null,
-    })),
-  });
-  await order.save();
+  }).returning();
 
+  await db.insert(orderItemsTable).values(cartItems.map((item) => ({
+    orderId: order.id,
+    productId: item.productId,
+    quantity: item.quantity,
+    price: item.price / 100,
+    productName: item.name ?? null,
+    productImage: Array.isArray(item.images) ? (item.images[0] ?? null) : null,
+    productUnit: item.unit ?? null,
+  })));
   if (firstSellerId) {
-    await Seller.findByIdAndUpdate(firstSellerId, { $inc: { totalOrders: 1 } });
+    const [seller] = await db.select({ totalOrders: sellersTable.totalOrders }).from(sellersTable).where(eq(sellersTable.id, firstSellerId));
+    if (seller) {
+      await db.update(sellersTable).set({ totalOrders: (seller.totalOrders ?? 0) + 1 }).where(eq(sellersTable.id, firstSellerId));
+    }
   }
-
-  cart.items = [];
-  cart.updatedAt = new Date();
-  await cart.save();
-
-  const seller = firstSellerId ? await Seller.findById(firstSellerId) : null;
-  const buyer = await User.findById(user.id);
-  res.status(201).json(enrichOrder(order.toJSON() as Record<string, unknown>, seller?.storeName ?? null, buyer?.name ?? null));
+  await db.delete(cartItemsTable).where(eq(cartItemsTable.cartId, cart.id));
+  res.status(201).json(await enrichOrder(order));
 });
 
 router.get("/orders/:id", requireAuth, async (req, res): Promise<void> => {
-  const params = GetOrderParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
-  const order = await Order.findById(params.data.id);
-  if (!order) {
-    res.status(404).json({ error: "Order not found" });
-    return;
-  }
-  const seller = order.sellerId ? await Seller.findById(order.sellerId) : null;
-  const buyer = await User.findById(order.userId);
-  res.json(enrichOrder(order.toJSON() as Record<string, unknown>, seller?.storeName ?? null, buyer?.name ?? null));
-});
-
-router.patch("/orders/:id", requireAuth, async (req, res): Promise<void> => {
-  const params = UpdateOrderStatusParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
-  const parsed = UpdateOrderStatusBody.safeParse(req.body);
+  const parsed = GetOrderParams.safeParse(req.params);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-
-  const update: Record<string, string> = { status: parsed.data.status as string };
-  if (parsed.data.eta) update.eta = parsed.data.eta;
-
-  const order = await Order.findByIdAndUpdate(params.data.id, update, { new: true });
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, parsed.data.id));
   if (!order) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
-  const seller = order.sellerId ? await Seller.findById(order.sellerId) : null;
-  const buyer = await User.findById(order.userId);
-  res.json(enrichOrder(order.toJSON() as Record<string, unknown>, seller?.storeName ?? null, buyer?.name ?? null));
+  res.json(await enrichOrder(order));
 });
 
-router.post("/orders/:id/payment/create", requireAuth, async (req, res): Promise<void> => {
-  const params = CreatePaymentParams.safeParse(req.params);
+router.patch("/orders/:id", requireAuth, async (req, res): Promise<void> => {
+  const params = UpdateOrderStatusParams.safeParse(req.params);
+  const parsed = UpdateOrderStatusBody.safeParse(req.body);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const order = await Order.findById(params.data.id);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const [order] = await db.update(ordersTable).set({
+    status: parsed.data.status,
+    ...(parsed.data.eta ? { eta: parsed.data.eta } : {}),
+  }).where(eq(ordersTable.id, params.data.id)).returning();
   if (!order) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
+  res.json(await enrichOrder(order));
+});
 
-  const razorpayKeyId = process.env.RAZORPAY_KEY_ID ?? "rzp_test_demo";
-  const razorpayOrderId = `order_${Date.now()}_${order._id}`;
-  await Order.findByIdAndUpdate(order._id, { razorpayOrderId });
-
+router.post("/orders/:id/payment/create", requireAuth, async (req, res): Promise<void> => {
+  const parsed = CreatePaymentParams.safeParse(req.params);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, parsed.data.id));
+  if (!order) {
+    res.status(404).json({ error: "Order not found" });
+    return;
+  }
+  const razorpayOrderId = `order_${Date.now()}_${order.id}`;
+  await db.update(ordersTable).set({ razorpayOrderId }).where(eq(ordersTable.id, order.id));
   res.json({
     razorpayOrderId,
     amount: Math.round(order.total * 100),
     currency: "INR",
-    keyId: razorpayKeyId,
+    keyId: process.env.RAZORPAY_KEY_ID ?? "rzp_test_demo",
   });
 });
 
 router.post("/orders/:id/payment/verify", requireAuth, async (req, res): Promise<void> => {
   const params = VerifyPaymentParams.safeParse(req.params);
+  const parsed = VerifyPaymentBody.safeParse(req.body);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const parsed = VerifyPaymentBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-
   const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = parsed.data;
-  const secret = process.env.RAZORPAY_KEY_SECRET ?? "demo_secret";
-
-  const expectedSig = crypto
-    .createHmac("sha256", secret)
-    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-    .digest("hex");
-
-  const isValid = expectedSig === razorpaySignature;
-
-  const order = await Order.findByIdAndUpdate(
-    params.data.id,
-    { paymentStatus: isValid ? "paid" : "failed", status: isValid ? "confirmed" : "pending" },
-    { new: true },
-  );
-
+  const expectedSig = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET ?? "demo_secret")
+    .update(`${razorpayOrderId}|${razorpayPaymentId}`).digest("hex");
+  const [order] = await db.update(ordersTable).set({
+    paymentStatus: expectedSig === razorpaySignature ? "paid" : "failed",
+    status: expectedSig === razorpaySignature ? "confirmed" : "pending",
+  }).where(eq(ordersTable.id, params.data.id)).returning();
   if (!order) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
-
-  const seller = order.sellerId ? await Seller.findById(order.sellerId) : null;
-  const buyer = await User.findById(order.userId);
-  res.json(enrichOrder(order.toJSON() as Record<string, unknown>, seller?.storeName ?? null, buyer?.name ?? null));
+  res.json(await enrichOrder(order));
 });
 
 export default router;

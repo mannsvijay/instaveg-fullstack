@@ -1,59 +1,59 @@
 import { Router } from "express";
-import { Cart, Product, Seller } from "@workspace/db";
+import { db, cartsTable, cartItemsTable, productsTable, sellersTable } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import { AddToCartBody, UpdateCartItemBody, UpdateCartItemParams, RemoveFromCartParams } from "@workspace/api-zod";
 
 const router = Router();
-
 const DELIVERY_FEE = 40;
 
 async function getOrCreateCart(userId: number) {
-  let cart = await Cart.findOne({ userId });
-  if (!cart) {
-    cart = new Cart({ userId, items: [] });
-    await cart.save();
-  }
-  return cart;
+  const [existing] = await db.select().from(cartsTable).where(eq(cartsTable.userId, userId));
+  if (existing) return existing;
+  const [created] = await db.insert(cartsTable).values({ userId }).returning();
+  return created;
 }
 
-async function buildCartResponse(cart: Awaited<ReturnType<typeof getOrCreateCart>>) {
-  const items = await Promise.all(
-    cart.items.map(async (item) => {
-      const product = await Product.findById(item.productId);
-      const seller = product ? await Seller.findById(product.sellerId) : null;
-      return {
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price / 100,
-        productName: product?.name ?? null,
-        productImage: product?.images?.[0] ?? null,
-        productUnit: product?.unit ?? null,
-        sellerId: product?.sellerId ?? null,
-        sellerName: seller?.storeName ?? null,
-        stock: product?.stock ?? 0,
-      };
-    }),
-  );
+async function buildCartResponse(cart: { id: number; userId: number; updatedAt: Date }) {
+  const items = await db.select({
+    id: cartItemsTable.id,
+    productId: cartItemsTable.productId,
+    quantity: cartItemsTable.quantity,
+    price: cartItemsTable.price,
+    productName: productsTable.name,
+    productImage: productsTable.images,
+    productUnit: productsTable.unit,
+    sellerId: productsTable.sellerId,
+    sellerName: sellersTable.storeName,
+    stock: productsTable.stock,
+  }).from(cartItemsTable)
+    .leftJoin(productsTable, eq(cartItemsTable.productId, productsTable.id))
+    .leftJoin(sellersTable, eq(productsTable.sellerId, sellersTable.id))
+    .where(eq(cartItemsTable.cartId, cart.id));
 
-  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const deliveryFee = items.length > 0 ? DELIVERY_FEE : 0;
-  const total = subtotal + deliveryFee;
+  const formattedItems = items.map((item) => ({
+    ...item,
+    price: item.price / 100,
+    productImage: Array.isArray(item.productImage) ? (item.productImage[0] ?? null) : null,
+    sellerName: item.sellerName ?? null,
+  }));
+  const subtotal = formattedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const deliveryFee = formattedItems.length > 0 ? DELIVERY_FEE : 0;
 
   return {
-    id: cart._id,
+    id: cart.id,
     userId: cart.userId,
-    items,
+    items: formattedItems,
     updatedAt: cart.updatedAt.toISOString(),
     subtotal,
     deliveryFee,
-    total,
+    total: subtotal + deliveryFee,
   };
 }
 
 router.get("/cart", requireAuth, async (req, res): Promise<void> => {
   const user = (req as typeof req & { user: { id: number } }).user;
-  const cart = await getOrCreateCart(user.id);
-  res.json(await buildCartResponse(cart));
+  res.json(await buildCartResponse(await getOrCreateCart(user.id)));
 });
 
 router.post("/cart/items", requireAuth, async (req, res): Promise<void> => {
@@ -64,51 +64,42 @@ router.post("/cart/items", requireAuth, async (req, res): Promise<void> => {
     return;
   }
   const { productId, quantity } = parsed.data;
-
-  const product = await Product.findById(productId);
+  const [product] = await db.select().from(productsTable).where(eq(productsTable.id, productId));
   if (!product) {
     res.status(404).json({ error: "Product not found" });
     return;
   }
-
   const cart = await getOrCreateCart(user.id);
-  const existingIdx = cart.items.findIndex((i) => i.productId === productId);
-
-  if (existingIdx >= 0) {
-    cart.items[existingIdx].quantity += quantity;
+  const [existing] = await db.select().from(cartItemsTable)
+    .where(and(eq(cartItemsTable.cartId, cart.id), eq(cartItemsTable.productId, productId)));
+  if (existing) {
+    await db.update(cartItemsTable).set({ quantity: existing.quantity + quantity })
+      .where(eq(cartItemsTable.id, existing.id));
   } else {
-    cart.items.push({ productId, quantity, price: Math.round(product.price * 100) });
+    await db.insert(cartItemsTable).values({ cartId: cart.id, productId, quantity, price: Math.round(product.price * 100) });
   }
-
-  cart.updatedAt = new Date();
-  await cart.save();
   res.json(await buildCartResponse(cart));
 });
 
 router.patch("/cart/items/:productId", requireAuth, async (req, res): Promise<void> => {
   const user = (req as typeof req & { user: { id: number } }).user;
   const params = UpdateCartItemParams.safeParse(req.params);
+  const parsed = UpdateCartItemBody.safeParse(req.body);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const parsed = UpdateCartItemBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-
   const cart = await getOrCreateCart(user.id);
-
+  const condition = and(eq(cartItemsTable.cartId, cart.id), eq(cartItemsTable.productId, params.data.productId));
   if (parsed.data.quantity <= 0) {
-    cart.items = cart.items.filter((i) => i.productId !== params.data.productId);
+    await db.delete(cartItemsTable).where(condition);
   } else {
-    const idx = cart.items.findIndex((i) => i.productId === params.data.productId);
-    if (idx >= 0) cart.items[idx].quantity = parsed.data.quantity;
+    await db.update(cartItemsTable).set({ quantity: parsed.data.quantity }).where(condition);
   }
-
-  cart.updatedAt = new Date();
-  await cart.save();
   res.json(await buildCartResponse(cart));
 });
 
@@ -119,20 +110,15 @@ router.delete("/cart/items/:productId", requireAuth, async (req, res): Promise<v
     res.status(400).json({ error: params.error.message });
     return;
   }
-
   const cart = await getOrCreateCart(user.id);
-  cart.items = cart.items.filter((i) => i.productId !== params.data.productId);
-  cart.updatedAt = new Date();
-  await cart.save();
+  await db.delete(cartItemsTable).where(and(eq(cartItemsTable.cartId, cart.id), eq(cartItemsTable.productId, params.data.productId)));
   res.json(await buildCartResponse(cart));
 });
 
 router.delete("/cart", requireAuth, async (req, res): Promise<void> => {
   const user = (req as typeof req & { user: { id: number } }).user;
   const cart = await getOrCreateCart(user.id);
-  cart.items = [];
-  cart.updatedAt = new Date();
-  await cart.save();
+  await db.delete(cartItemsTable).where(eq(cartItemsTable.cartId, cart.id));
   res.sendStatus(204);
 });
 
