@@ -1,9 +1,9 @@
 import { Link } from "wouter";
 import { useAuthStore } from "@/store/useAuthStore";
 import {
-  useGetFreshPicks, useGetTrendingProducts, useListCategories,
+  useGetFreshPicks, useGetTrendingProducts,
   useAddToCart, getGetFreshPicksQueryKey, getGetTrendingProductsQueryKey,
-  getListCategoriesQueryKey, getGetCartQueryKey,
+  getGetCartQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,15 +38,6 @@ function ProductCardSkeleton() {
   );
 }
 
-function CategorySkeleton() {
-  return (
-    <div className="flex flex-col items-center gap-3 shrink-0">
-      <Skeleton className="w-20 h-20 rounded-full" />
-      <Skeleton className="h-3 w-16 rounded-full" />
-    </div>
-  );
-}
-
 export default function Home() {
   const { user } = useAuthStore();
   const { toast } = useToast();
@@ -54,11 +45,8 @@ export default function Home() {
 
   const { data: freshPicksRaw, isLoading: loadingFresh } = useGetFreshPicks({}, { query: { queryKey: getGetFreshPicksQueryKey() } });
   const { data: trendingRaw, isLoading: loadingTrending } = useGetTrendingProducts({}, { query: { queryKey: getGetTrendingProductsQueryKey() } });
-  const { data: categoriesRaw, isLoading: loadingCats } = useListCategories({ query: { queryKey: getListCategoriesQueryKey() } });
-
   const freshPicks = (freshPicksRaw as any[]) ?? [];
   const trending = (trendingRaw as any[]) ?? [];
-  const categories = (categoriesRaw as any[]) ?? [];
 
   const addToCartMutation = useAddToCart();
   const handleAddToCart = (productId: number, name: string) => {
@@ -124,20 +112,6 @@ export default function Home() {
           <h2 className="text-base font-bold mb-5 flex items-center gap-2 text-foreground">
             <Leaf className="w-4 h-4 text-accent" /> Explore by Category
           </h2>
-          <div className="flex overflow-x-auto pb-2 gap-5 snap-x snap-mandatory hide-scrollbar">
-            {loadingCats
-              ? Array.from({ length: 6 }).map((_, i) => <CategorySkeleton key={i} />)
-              : categories.map((cat: any) => (
-                  <Link key={cat.id} href={`/category/${cat.slug}`} className="snap-start shrink-0">
-                    <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.95 }} className="flex flex-col items-center gap-2">
-                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-border/50 shadow-sm bg-white">
-                        <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
-                      </div>
-                      <span className="text-xs font-medium text-foreground whitespace-nowrap">{cat.name}</span>
-                    </motion.div>
-                  </Link>
-                ))}
-          </div>
         </div>
       </section>
 
