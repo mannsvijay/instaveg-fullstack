@@ -222,7 +222,7 @@ function ProductCard({ product, onAddToCart }: { product: any; onAddToCart: (id:
         </Link>
         <p className="text-xs text-muted-foreground mt-0.5">{product.unit}</p>
 
-        {product.rating && (
+        {product.rating > 0 && (
           <div className="flex items-center gap-1 mt-1">
             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
             <span className="text-[11px] text-muted-foreground">{Number(product.rating).toFixed(1)}</span>
