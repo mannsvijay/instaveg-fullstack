@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
-    "seed": "tsx ./src/seed.ts",
+    "seed": "tsx --env-file=../.env ./src/seed.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
