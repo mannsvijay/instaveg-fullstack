@@ -1,7 +1,6 @@
 import { connectDB } from "@workspace/db";
 import app from "./app";
 import { logger } from "./lib/logger";
-import { seedIfEmpty } from "./lib/startup-seed";
 
 const rawPort = process.env.PORT ?? "8080";
 const port = Number(rawPort);
@@ -18,9 +17,6 @@ connectDB()
         process.exit(1);
       }
       logger.info({ port }, "Server listening");
-      seedIfEmpty().catch((err: unknown) => {
-        logger.error({ err }, "Startup seed failed");
-      });
     });
   })
   .catch((err: unknown) => {
