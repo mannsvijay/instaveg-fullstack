@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, productsTable, sellersTable, categoriesTable, reviewsTable, usersTable } from "@workspace/db";
 import { eq, ilike, and, gte, lte, desc, sql } from "drizzle-orm";
 import { requireAuth, requireRole } from "../lib/auth";
+import { uniqueProductSlug } from "../lib/slug";
 import {
   ListProductsQueryParams,
   CreateProductBody,
@@ -85,7 +86,8 @@ router.post("/products", requireAuth, requireRole("seller", "admin"), async (req
     res.status(403).json({ error: "Seller profile not found" });
     return;
   }
-  const [product] = await db.insert(productsTable).values({ ...parsed.data, sellerId: seller.id }).returning();
+  const slug = await uniqueProductSlug(parsed.data.name);
+  const [product] = await db.insert(productsTable).values({ ...parsed.data, slug, sellerId: seller.id }).returning();
   res.status(201).json(await enrichProduct(product));
 });
 
