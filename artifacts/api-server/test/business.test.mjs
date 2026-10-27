@@ -105,6 +105,19 @@ test("H5: products of a suspended seller are hidden from the public", async () =
   assert.equal((await api("PATCH", `/products/${product.id}`, s.admin.token, { stock: 1 })).status, 200, "admin is exempt");
 });
 
+// M13
+test("M13: admins list sellers by status; others cannot", async () => {
+  const suspended = await api("GET", "/admin/sellers?status=suspended", s.admin.token);
+  assert.equal(suspended.status, 200);
+  assert.ok(suspended.data.some((x) => x.id === s.testSeller.sellerId), "suspended test seller listed");
+  assert.ok(suspended.data.every((x) => x.status === "suspended"));
+  const approved = await api("GET", "/admin/sellers?status=approved", s.admin.token);
+  assert.ok(approved.data.some((x) => x.id === s.ramesh.sellerId && x.ownerName === "Ramesh Kumar"));
+  assert.equal((await api("GET", "/admin/sellers?status=bogus", s.admin.token)).status, 400);
+  assert.equal((await api("GET", "/admin/sellers", s.ramesh.token)).status, 403);
+  assert.equal((await api("GET", "/admin/sellers", s.buyer.token)).status, 403);
+});
+
 // M8
 test("M8: role must be buyer/seller/admin", async () => {
   assert.equal((await api("PATCH", `/admin/users/${s.buyer2.id}`, s.admin.token, { role: "superuser" })).status, 400);

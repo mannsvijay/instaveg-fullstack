@@ -21,7 +21,7 @@
 - Dashboard with revenue and order statistics, and store settings
 
 ### Admins
-- Approve or reject seller applications
+- Approve or reject seller applications, and suspend or reactivate sellers
 - Manage users (suspend or reactivate)
 - See all orders and update their status
 - Products page with search, edit and delete

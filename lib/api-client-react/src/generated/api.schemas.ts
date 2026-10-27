@@ -515,6 +515,20 @@ page?: number;
 search?: string;
 };
 
+export type AdminListSellersParams = {
+status?: AdminListSellersStatus;
+};
+
+export type AdminListSellersStatus = typeof AdminListSellersStatus[keyof typeof AdminListSellersStatus];
+
+
+export const AdminListSellersStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+  suspended: 'suspended',
+} as const;
+
 export type AdminListOrdersParams = {
 status?: string;
 page?: number;

@@ -5,6 +5,7 @@ import { requireAuth, requireRole } from "../lib/auth";
 import {
   AdminListUsersQueryParams, AdminUpdateUserBody, AdminUpdateUserParams,
   AdminApproveSellerParams, AdminApproveSellerBody, AdminListOrdersQueryParams,
+  AdminListSellersQueryParams,
 } from "@workspace/api-zod";
 import { orderFields } from "../lib/order-fields";
 
@@ -87,6 +88,20 @@ router.patch("/admin/users/:id", requireAuth, requireRole("admin"), async (req, 
   }
   const { password: _pw, ...safeUser } = user;
   res.json(safeUser);
+});
+
+// M13: all sellers (or one status) with owner names, for suspend/reactivate.
+router.get("/admin/sellers", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
+  const parsed = AdminListSellersQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const rows = await db.select({ seller: sellersTable, ownerName: usersTable.name }).from(sellersTable)
+    .leftJoin(usersTable, eq(usersTable.id, sellersTable.userId))
+    .where(parsed.data.status ? eq(sellersTable.status, parsed.data.status) : undefined)
+    .orderBy(desc(sellersTable.createdAt));
+  res.json(rows.map(({ seller, ownerName }) => ({ ...seller, ownerName: ownerName ?? null, createdAt: seller.createdAt.toISOString() })));
 });
 
 router.get("/admin/sellers/pending", requireAuth, requireRole("admin"), async (_req, res): Promise<void> => {

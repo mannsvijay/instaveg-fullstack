@@ -29,7 +29,10 @@ The findings below are kept as originally recorded. This table tracks where each
 | M10 | Fixed (Batch 6) | Checkout adds each item's quantity to `orderCount` in the checkout transaction; cancelling subtracts it (never below 0) with the stock restore |
 | M11 | Fixed (Batch 6) | Review form on ProductDetail for buyers the new `GET /products/{id}/reviews/eligibility` endpoint allows (checks only the caller's own orders and reviews) |
 | M12 | Fixed (Batch 6) | Dev/preview servers bind to localhost with Vite's host check; `DEV_HOST=0.0.0.0` opts in to network access (host check stays on) |
-| M13, M14 | Open (Batch 6) | |
+| M13 | Admin Sellers page only lists pending applications; there is no way to suspend or reactivate a seller from the UI (the API already supports the status change). Batch 6 | `pages/admin/Sellers.tsx`; no admin endpoint lists approved/suspended sellers | Add `GET /admin/sellers?status=` and Suspend/Reactivate buttons with confirmation |
+| M14 | Admin Orders status dropdown offers every status, although the API only accepts the next step or a cancel where allowed (C2), so most choices fail. Batch 6 | `pages/admin/Orders.tsx` | Offer only the valid next status and "cancelled" when allowed |
+| M13 | Fixed (Batch 6) | Admin-only `GET /admin/sellers?status=`; Sellers page tabs (pending/approved/suspended) with Suspend and Reactivate behind a confirm dialog |
+| M14 | Open (Batch 6) | |
 | L1–L5 | Fixed (Batch 5) | Replit branding, plugins, config, assets and sandbox removed |
 | L6 | Fixed (Batch 4) | Unreferenced images removed |
 | L7 | Fixed (Batch 6) | `scrollbar-hide` utility defined; the chips still scroll |

@@ -1039,6 +1039,35 @@ export const AdminUpdateUserResponse = zod.object({
 
 
 /**
+ * @summary List sellers, optionally filtered by status (admin only)
+ */
+export const AdminListSellersQueryParams = zod.object({
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']).optional()
+})
+
+export const AdminListSellersResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "storeName": zod.string(),
+  "description": zod.string().nullish(),
+  "logo": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish(),
+  "deliveryRadius": zod.number().nullish(),
+  "rating": zod.number().nullish(),
+  "totalOrders": zod.number().optional(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "createdAt": zod.coerce.date(),
+  "ownerName": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "isVerified": zod.boolean().optional()
+})
+export const AdminListSellersResponse = zod.array(AdminListSellersResponseItem)
+
+
+/**
  * @summary Get pending seller applications
  */
 export const AdminGetPendingSellersResponseItem = zod.object({

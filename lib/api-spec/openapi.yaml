@@ -895,6 +895,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
 
+  /admin/sellers:
+    get:
+      operationId: adminListSellers
+      tags: [admin]
+      summary: List sellers, optionally filtered by status (admin only)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, approved, rejected, suspended]
+      responses:
+        "200":
+          description: Sellers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Seller"
+
   /admin/sellers/pending:
     get:
       operationId: adminGetPendingSellers

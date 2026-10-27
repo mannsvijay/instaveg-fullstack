@@ -23,6 +23,7 @@ import type {
   Address,
   AddressInput,
   AdminListOrdersParams,
+  AdminListSellersParams,
   AdminListUsersParams,
   AdminStats,
   AdminUserUpdate,
@@ -3451,6 +3452,90 @@ export const useAdminUpdateUser = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getAdminUpdateUserMutationOptions(options));
     }
+
+export const getAdminListSellersUrl = (params?: AdminListSellersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/sellers?${stringifiedParams}` : `/api/admin/sellers`
+}
+
+/**
+ * @summary List sellers, optionally filtered by status (admin only)
+ */
+export const adminListSellers = async (params?: AdminListSellersParams, options?: RequestInit): Promise<Seller[]> => {
+
+  return customFetch<Seller[]>(getAdminListSellersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminListSellersQueryKey = (params?: AdminListSellersParams,) => {
+    return [
+    `/api/admin/sellers`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAdminListSellersQueryOptions = <TData = Awaited<ReturnType<typeof adminListSellers>>, TError = ErrorType<unknown>>(params?: AdminListSellersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListSellers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListSellersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListSellers>>> = ({ signal }) => adminListSellers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListSellers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminListSellersQueryResult = NonNullable<Awaited<ReturnType<typeof adminListSellers>>>
+export type AdminListSellersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List sellers, optionally filtered by status (admin only)
+ */
+
+export function useAdminListSellers<TData = Awaited<ReturnType<typeof adminListSellers>>, TError = ErrorType<unknown>>(
+ params?: AdminListSellersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListSellers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminListSellersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getAdminGetPendingSellersUrl = () => {
 
