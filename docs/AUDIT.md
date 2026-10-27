@@ -25,7 +25,8 @@ The findings below are kept as originally recorded. This table tracks where each
 | M5 | Resolved: obsolete (Batch 6) | The Razorpay verify flow it described was removed (client in Batch 3, API in H4); COD checkout has no payment step |
 | M6 | Resolved: obsolete (Batch 6) | Checkout is COD-only and runs as one transaction (M2); there is no online payment that could be abandoned after the cart is cleared |
 | M7 | Fixed (Batch 6) | A 401 on a request made with a session token (not wrong credentials at login/register) logs out, clears cached data, shows "Session expired, please log in again" and redirects to /login; `ProtectedRoute` uses `<Redirect>` |
-| M9, M10, M11, M12, M13, M14 | Open (Batch 6) | |
+| M9 | Fixed (Batch 6) | Route pages lazy-loaded (main JS chunk 1,049,739 → 495,082 bytes); product lists use one joined query and category counts one grouped query, with identical responses |
+| M10, M11, M12, M13, M14 | Open (Batch 6) | |
 | L1–L5 | Fixed (Batch 5) | Replit branding, plugins, config, assets and sandbox removed |
 | L6 | Fixed (Batch 4) | Unreferenced images removed |
 | L7, L9 | Open (Batch 6) | |

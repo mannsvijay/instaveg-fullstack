@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, productsTable, sellersTable, categoriesTable, reviewsTable, usersTable, ordersTable, orderItemsTable } from "@workspace/db";
-import { eq, ilike, and, gte, lte, desc, sql } from "drizzle-orm";
+import { eq, ilike, and, gte, lte, desc, sql, getTableColumns } from "drizzle-orm";
 import { requireAuth, requireRole, optionalUser } from "../lib/auth";
 import { approvedSellerProducts, getSellerForUser, productVisibility } from "../lib/product-visibility";
 import { uniqueProductSlug } from "../lib/slug";
@@ -38,35 +38,37 @@ function productNumbersError(values: { price: number; mrp?: number | null; stock
   return null;
 }
 
-async function enrichProduct(product: typeof productsTable.$inferSelect) {
-  const [seller] = await db.select({ storeName: sellersTable.storeName, city: sellersTable.city })
-    .from(sellersTable).where(eq(sellersTable.id, product.sellerId));
-  const [category] = await db.select({ name: categoriesTable.name })
-    .from(categoriesTable).where(eq(categoriesTable.id, product.categoryId));
-  return {
-    ...product,
-    sellerName: seller?.storeName ?? null,
-    sellerCity: seller?.city ?? null,
-    categoryName: category?.name ?? null,
-  };
+// Products with seller and category names in one query (M9; was 2 extra queries per product).
+function productDetails() {
+  return db.select({
+    ...getTableColumns(productsTable),
+    sellerName: sellersTable.storeName,
+    sellerCity: sellersTable.city,
+    categoryName: categoriesTable.name,
+  }).from(productsTable)
+    .leftJoin(sellersTable, eq(sellersTable.id, productsTable.sellerId))
+    .leftJoin(categoriesTable, eq(categoriesTable.id, productsTable.categoryId));
+}
+
+async function productDetailsById(id: number) {
+  const [product] = await productDetails().where(eq(productsTable.id, id));
+  return product;
 }
 
 router.get("/products/trending", async (req, res): Promise<void> => {
   const parsed = GetTrendingProductsQueryParams.safeParse(req.query);
   const limit = parsed.success ? (parsed.data.limit ?? 10) : 10;
-  const products = await db.select().from(productsTable)
+  res.json(await productDetails()
     .where(and(gte(productsTable.stock, 1), approvedSellerProducts()))
-    .orderBy(desc(productsTable.orderCount)).limit(limit);
-  res.json(await Promise.all(products.map(enrichProduct)));
+    .orderBy(desc(productsTable.orderCount)).limit(limit));
 });
 
 router.get("/products/fresh-picks", async (req, res): Promise<void> => {
   const parsed = GetFreshPicksQueryParams.safeParse(req.query);
   const limit = parsed.success ? (parsed.data.limit ?? 10) : 10;
-  const products = await db.select().from(productsTable)
+  res.json(await productDetails()
     .where(and(eq(productsTable.isFresh, true), gte(productsTable.stock, 1), approvedSellerProducts()))
-    .orderBy(desc(productsTable.createdAt)).limit(limit);
-  res.json(await Promise.all(products.map(enrichProduct)));
+    .orderBy(desc(productsTable.createdAt)).limit(limit));
 });
 
 router.get("/products", async (req, res): Promise<void> => {
@@ -93,9 +95,9 @@ router.get("/products", async (req, res): Promise<void> => {
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const offset = (page - 1) * limit;
   const [total] = await db.select({ count: sql<number>`count(*)::int` }).from(productsTable).where(where);
-  const products = await db.select().from(productsTable).where(where)
+  const products = await productDetails().where(where)
     .orderBy(desc(productsTable.createdAt)).limit(limit).offset(offset);
-  res.json({ products: await Promise.all(products.map(enrichProduct)), total: total?.count ?? 0, page, limit });
+  res.json({ products, total: total?.count ?? 0, page, limit });
 });
 
 router.post("/products", requireAuth, requireRole("seller", "admin"), async (req, res): Promise<void> => {
@@ -121,7 +123,7 @@ router.post("/products", requireAuth, requireRole("seller", "admin"), async (req
   }
   const slug = await uniqueProductSlug(parsed.data.name);
   const [product] = await db.insert(productsTable).values({ ...parsed.data, slug, sellerId: seller.id }).returning();
-  res.status(201).json(await enrichProduct(product));
+  res.status(201).json(await productDetailsById(product.id));
 });
 
 router.get("/products/:id", async (req, res): Promise<void> => {
@@ -130,13 +132,13 @@ router.get("/products/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [product] = await db.select().from(productsTable)
+  const [product] = await productDetails()
     .where(and(eq(productsTable.id, parsed.data.id), await productVisibility(optionalUser(req))));
   if (!product) {
     res.status(404).json({ error: "Product not found" });
     return;
   }
-  res.json(await enrichProduct(product));
+  res.json(product);
 });
 
 router.patch("/products/:id", requireAuth, requireRole("seller", "admin"), async (req, res): Promise<void> => {
@@ -176,7 +178,7 @@ router.patch("/products/:id", requireAuth, requireRole("seller", "admin"), async
     res.status(404).json({ error: "Product not found" });
     return;
   }
-  res.json(await enrichProduct(product));
+  res.json(await productDetailsById(product.id));
 });
 
 router.delete("/products/:id", requireAuth, requireRole("seller", "admin"), async (req, res): Promise<void> => {
