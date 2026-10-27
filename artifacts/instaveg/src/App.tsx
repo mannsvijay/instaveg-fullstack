@@ -23,6 +23,7 @@ import Orders from "@/pages/Orders";
 import OrderDetail from "@/pages/OrderDetail";
 import Profile from "@/pages/Profile";
 import Wishlist from "@/pages/Wishlist";
+import Credits from "@/pages/Credits";
 import SearchPage from "@/pages/Search";
 
 import SellerDashboard from "@/pages/seller/Dashboard";
@@ -152,6 +153,12 @@ function Router() {
       <Route path="/profile">
         <BuyerLayout>
           <Profile />
+        </BuyerLayout>
+      </Route>
+
+      <Route path="/credits">
+        <BuyerLayout>
+          <Credits />
         </BuyerLayout>
       </Route>
 

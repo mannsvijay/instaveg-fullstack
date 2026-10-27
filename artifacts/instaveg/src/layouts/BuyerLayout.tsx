@@ -156,9 +156,9 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
       </main>
 
       <footer className="border-t border-border/40 pt-4 pb-20 md:pb-4 text-center text-xs text-muted-foreground">
-        <a href="/images/CREDITS.md" target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
+        <Link href="/credits" className="hover:text-primary hover:underline">
           Image credits
-        </a>
+        </Link>
       </footer>
 
       {/* Mobile Bottom Nav */}
