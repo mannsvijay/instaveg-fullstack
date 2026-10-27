@@ -36,6 +36,7 @@ import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminUsers from "@/pages/admin/Users";
 import AdminSellers from "@/pages/admin/Sellers";
 import AdminOrders from "@/pages/admin/Orders";
+import AdminProducts from "@/pages/admin/Products";
 
 // Inject token into all API calls automatically
 setAuthTokenGetter(() => useAuthStore.getState().token);
@@ -240,6 +241,22 @@ function Router() {
         <ProtectedRoute role="admin">
           <AdminLayout>
             <AdminSellers />
+          </AdminLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/products">
+        <ProtectedRoute role="admin">
+          <AdminLayout>
+            <AdminProducts />
+          </AdminLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/products/:id/edit">
+        <ProtectedRoute role="admin">
+          <AdminLayout>
+            <SellerAddProduct />
           </AdminLayout>
         </ProtectedRoute>
       </Route>
