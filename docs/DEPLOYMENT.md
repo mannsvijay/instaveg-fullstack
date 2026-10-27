@@ -18,8 +18,10 @@ Why this design: the workspace packages export TypeScript source, which Node can
 | Path | Cache-Control |
 |---|---|
 | `/assets/*` (content-hashed JS/CSS) | `public, max-age=31536000, immutable` |
-| `/images/*` (product and category photos) | `public, max-age=604800, stale-while-revalidate=86400` |
+| `/images/*` (product and category photos) | `public, max-age=604800, stale-while-revalidate=86400`, only for files that exist (the route lists them at build time, L12); a 404 for a missing image gets no long cache |
 | `/`, `/index.html` and SPA fallback responses | `no-cache` |
+
+Every path except `/api` also gets the website's security headers (M17, `SITE_SECURITY_HEADERS` in `build-vercel.mjs`): a Content-Security-Policy (own scripts only; own and Google Fonts styles plus inline styles; Google Fonts files; own, `data:` and `https:` images because sellers may enter external image URLs; same-origin API calls; `frame-ancestors 'none'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` and a `Permissions-Policy` that turns off camera, microphone, geolocation, payment, USB and Topics. `/api` responses keep helmet's headers from the Express app. If the app starts loading something from a new origin, add it to the CSP there.
 
 The build never pushes the schema or seeds data, and the API never seeds on startup. Both are manual steps below.
 
@@ -174,10 +176,11 @@ Two things can only be confirmed on Vercel itself; the first three checks cover 
 | 6 | Open `/admin/orders` while signed out, then refresh | redirected to the login page | SPA fallback for protected routes |
 | 7 | Open `/images/products/tomato.webp` | the image; `cache-control: public, max-age=604800, stale-while-revalidate=86400` | static images and cache headers |
 | 8 | DevTools → Network, any `/assets/index-*.js` | `cache-control: public, max-age=31536000, immutable` | hashed asset caching |
-| 9 | Open `/images/products/missing.webp` | 404 (not the app's HTML) | missing files are real 404s |
+| 9 | Open `/images/products/missing.webp` | 404 (not the app's HTML), without the `max-age=604800` cache header | missing files are real 404s and are not cached (L12) |
 | 10 | Log in as `buyer@instaveg.com` / `buyer123`, add an item, check out with COD | order placed, visible under Orders | API, auth and database writes |
 | 11 | Vercel → Logs for the deployment | one JSON object per request; no "does not use Neon's pooled" warning | JSON logging and pooled `DATABASE_URL` |
 | 12 | Preview only: confirm the order from step 10 is in the **dev** branch, not production | | Preview is isolated from production data |
+| 13 | `curl -I` on `/` and on `/api/healthz`; DevTools console on the home page | `/` has `content-security-policy` and `x-frame-options: DENY`; `/api/healthz` has helmet's `x-frame-options: SAMEORIGIN`; no CSP errors in the console | website security headers (M17), and that the `/api` exclusion works on Vercel |
 
 ## Fallbacks
 

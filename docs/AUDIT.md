@@ -36,6 +36,9 @@ The findings below are kept as originally recorded. This table tracks where each
 | L7 | Fixed (Batch 6) | `scrollbar-hide` utility defined; the chips still scroll |
 | L9 | Fixed (Batch 6) | Non-approved sellers get 403 on product delete (admin exempt) |
 | L8 | Fixed (Batch 3) | Full-width COD card |
+| M16 | Fixed (post-launch) | Restored the categories query and the row of 8 category links with images on Home (removed by `e4ad4a4`) |
+| M17 | Fixed (post-launch) | CSP (incl. Google Fonts), `X-Frame-Options: DENY`/`frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` on every non-`/api` path via `build-vercel.mjs`; Playwright check of 6 pages on the local preview: 0 CSP violations, 0 console errors |
+| L12 | Fixed (post-launch) | The `/images` cache header route is generated from the image files that exist, so a missing image 404 gets no 7-day cache; the local preview now keeps route headers on 404s as Vercel does |
 | L10 | Open | Replace with real Pexels/Pixabay/Unsplash photos |
 | L11 | Open | Drop `orders.razorpay_order_id` in a future migration |
 | M15 | Fixed (Batch 8) | `trust proxy` = 1 only when `VERCEL=1`: Vercel overwrites `X-Forwarded-For` with the client IP, so `req.ip` (and the auth rate limit) is the real client; elsewhere `X-Forwarded-For` is ignored |
@@ -123,6 +126,8 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | M11 | No review form in the UI (M1 is server-side only). Batch 6 | `pages/ProductDetail.tsx` has no `useCreateReview` | Review form on ProductDetail for eligible buyers (delivered order containing the product) |
 | M12 | Vite dev/preview servers listen on all interfaces with no host check (`host: "0.0.0.0"`, `allowedHosts: true`, a Replit carry-over): other devices on the network can reach the dev server, and DNS-rebinding protection is off. Batch 6 | `artifacts/instaveg/vite.config.ts` `server` / `preview`; `--host 0.0.0.0` in the `dev` / `serve` scripts of `artifacts/instaveg/package.json` | Default to `localhost` and Vite's normal host check; allow opting in via an env var |
 | M15 | Behind a proxy (Vercel), Express sees the proxy's IP unless `trust proxy` is configured, so the per-IP auth rate limits (M4) would treat all clients as one. Batch 8 | `artifacts/api-server/src/app.ts` | Set `app.set("trust proxy", …)` for the deployment's proxy hops only, so clients cannot spoof `X-Forwarded-For` |
+| M16 | Home page "Explore by Category" heading renders with nothing under it (live since launch). Post-launch | Commit `e4ad4a4` ("removing unused code", Replit Agent) deleted the categories query and grid from `pages/Home.tsx` but left the heading | Restore the `useListCategories` query and a row of category links with images |
+| M17 | The website (HTML, JS, CSS, images) has no security headers; helmet only covers `/api`. No CSP, framing allowed, no `nosniff`. Post-launch | `curl -I https://instaveg.vercel.app/` shows only Vercel's HSTS; `build-vercel.mjs` sets only Cache-Control | Add CSP (incl. Google Fonts), `frame-ancestors 'none'`/`X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` in `build-vercel.mjs` routes |
 
 ### 🟢 LOW — Replit branding & cleanup
 
@@ -139,6 +144,7 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | L9 | A suspended (or otherwise non-approved) seller can still delete their own products. Batch 6 | `routes/products.ts` `DELETE /products/:id` checks ownership but not seller status |
 | L10 | 7 products (spinach, coriander, fenugreek leaves, bottle gourd, pumpkin, radish, ginger) and 3 categories (Leafy Vegetables, Gourds, Herbs & Spices) are not yet in the studio style; brinjal is a striped variety. No clean isolated openly licensed photo was found on Wikimedia Commons. Replace later with real Pexels/Pixabay/Unsplash photos (no AI-generated or paid-stock previews) through the same cutout pipeline | `public/images/products/`, `public/images/categories/`, `CREDITS.md` |
 | L11 | The unused `orders.razorpay_order_id` column remains after the COD-only change (H4); the API no longer exposes it. Drop it in a future migration | `lib/db/src/schema/orders.ts` |
+| L12 | A 404 for a missing `/images/*` file carries the 7-day image Cache-Control, so browsers may keep the 404 after the image is added. Post-launch | `build-vercel.mjs` `/images` header route applies to every status |
 
 Note: the visible Replit badge on the live site is injected by Replit hosting. It disappears automatically once hosted on Vercel; the CSS hack should still be deleted.
 

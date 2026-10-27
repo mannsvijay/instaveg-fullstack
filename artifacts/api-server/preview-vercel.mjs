@@ -88,7 +88,8 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   const { headers, target } = resolve(url.pathname);
   if (!target) {
-    res.writeHead(404, { "content-type": "text/plain; charset=utf-8" }).end("404: NOT_FOUND");
+    // Vercel keeps the matched header routes on its 404 too (seen live, L12).
+    res.writeHead(404, { "content-type": "text/plain; charset=utf-8", ...headers }).end("404: NOT_FOUND");
     return;
   }
   if (target.kind === "static") {
