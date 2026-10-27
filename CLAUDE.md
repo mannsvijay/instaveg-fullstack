@@ -1,7 +1,12 @@
 # CLAUDE.md — InstaVEG
 
-You are working on InstaVEG, a hyperlocal vegetable marketplace being repaired and moved off Replit to Vercel.
+You are working on InstaVEG, a hyperlocal vegetable marketplace. It is deployed: https://instaveg.vercel.app runs on Vercel (API function in `sin1`) with Neon Postgres.
 Read `docs/AUDIT.md` before starting any task. Every change should map to an audit item ID (C1, H3, L2…).
+
+## Branches and deployment
+- `main` is production: every merge to `main` deploys to https://instaveg.vercel.app against the Neon production branch.
+- Never commit directly to `main`. Work on a feature branch, push it, and open a pull request. Vercel builds a Preview deployment (Neon dev branch) for the pull request; check it before merging.
+- Pushing, merging and production schema pushes or seeds are the user's decision. See `docs/DEPLOYMENT.md`.
 
 ## Actual stack (verified)
 - pnpm workspace monorepo, TypeScript 5.9, Node 20+ (pnpm 10.x required; use `pnpm`, never npm/yarn)
@@ -48,4 +53,4 @@ Read `docs/AUDIT.md` before starting any task. Every change should map to an aud
 
 ## Platform notes
 - The developer may be on Windows. Keep scripts cross-platform (no bare `export VAR=` in package.json scripts).
-- Target deployment: Vercel (static frontend + Express as a serverless function under `/api`) + Neon Postgres. See `docs/AUDIT.md` §4.
+- Deployment: Vercel (static frontend + Express as one function under `/api`, built by `pnpm run build:vercel`) + Neon Postgres. See `docs/DEPLOYMENT.md`.

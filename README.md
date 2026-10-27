@@ -2,7 +2,7 @@
 
 **A hyperlocal marketplace where neighbourhood farms sell fresh vegetables, fruits and herbs directly to buyers.**
 
-**Live demo:** coming soon.
+**Live demo:** [instaveg.vercel.app](https://instaveg.vercel.app) (see [Demo accounts](#demo-accounts))
 
 ## Features
 
@@ -117,11 +117,11 @@ Admin access to the public demo is available on request.
 
 ## Deployment
 
-The app deploys as one Vercel project (static React app plus the API as a Vercel Function in Singapore) with Neon Postgres. [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) has the step-by-step setup, environment variables, the production schema push and seed, and a smoke-test checklist.
+The live demo at [instaveg.vercel.app](https://instaveg.vercel.app) runs on Vercel, with the API as a Vercel Function in Singapore (`sin1`) and Neon Postgres in AWS `ap-southeast-1`. `main` is production; every other branch gets a Vercel Preview deployment that uses the development database. [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) has the step-by-step setup, environment variables, the production schema push and seed, and a smoke-test checklist.
 
 ## Testing
 
-The API has 45 automated tests: 22 cover the security fixes (access control on orders and products, order status rules, cash-on-delivery-only payments, the session-secret requirement and address ownership), 16 cover business rules (seller approval, product editing and deletion, review rules and review eligibility, quantity and stock validation, one order per seller with totals equal to the cart total, stock and order-count updates on checkout and cancel, rollback of a failed checkout, and the admin seller list), and 7 cover API hardening (JSON 404s and errors, security headers, login and register rate limits, and CORS).
+The API has 47 automated tests: 22 cover the security fixes (access control on orders and products, order status rules, cash-on-delivery-only payments, the session-secret requirement and address ownership), 16 cover business rules (seller approval, product editing and deletion, review rules and review eligibility, quantity and stock validation, one order per seller with totals equal to the cart total, stock and order-count updates on checkout and cancel, rollback of a failed checkout, and the admin seller list), and 9 cover API hardening (JSON 404s and errors, security headers, login and register rate limits, CORS, and `trust proxy` behind Vercel).
 
 ```bash
 pnpm --filter @workspace/api-server run test
@@ -139,13 +139,19 @@ Product and category photos are openly licensed images from Wikimedia Commons. E
 
 ## Screenshots
 
-| Home | Product page | Checkout |
-|---|---|---|
-| _coming soon_ | _coming soon_ | _coming soon_ |
+Captured from the live demo.
 
-| Seller dashboard | Admin products |
+| Home | Category |
 |---|---|
-| _coming soon_ | _coming soon_ |
+| ![Home page](docs/screenshots/home.webp) | ![Leafy Vegetables category](docs/screenshots/category.webp) |
+
+| Product page | Cart |
+|---|---|
+| ![Product page for onions](docs/screenshots/product.webp) | ![Cart with one item](docs/screenshots/cart.webp) |
+
+| Seller dashboard | Home on mobile |
+|---|---|
+| ![Seller dashboard](docs/screenshots/seller-dashboard.webp) | ![Home page on a phone](docs/screenshots/home-mobile.webp) |
 
 ## License
 
