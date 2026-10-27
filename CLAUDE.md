@@ -1,7 +1,7 @@
 # CLAUDE.md — InstaVEG
 
 You are working on InstaVEG, a hyperlocal vegetable marketplace being repaired and moved off Replit to Vercel.
-Read `AUDIT.md` before starting any task. Every change should map to an audit item ID (C1, H3, L2…).
+Read `docs/AUDIT.md` before starting any task. Every change should map to an audit item ID (C1, H3, L2…).
 
 ## Actual stack (verified)
 - pnpm workspace monorepo, TypeScript 5.9, Node 20+ (pnpm 10.x required; use `pnpm`, never npm/yarn)
@@ -48,4 +48,4 @@ Read `AUDIT.md` before starting any task. Every change should map to an audit it
 
 ## Platform notes
 - The developer may be on Windows. Keep scripts cross-platform (no bare `export VAR=` in package.json scripts).
-- Target deployment: Vercel (static frontend + Express as a serverless function under `/api`) + Neon Postgres. See `AUDIT.md` §4.
+- Target deployment: Vercel (static frontend + Express as a serverless function under `/api`) + Neon Postgres. See `docs/AUDIT.md` §4.
