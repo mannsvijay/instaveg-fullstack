@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, productsTable, sellersTable, categoriesTable, reviewsTable, usersTable } from "@workspace/db";
+import { db, productsTable, sellersTable, categoriesTable, reviewsTable, usersTable, ordersTable, orderItemsTable } from "@workspace/db";
 import { eq, ilike, and, gte, lte, desc, sql } from "drizzle-orm";
 import { requireAuth, requireRole, optionalUser } from "../lib/auth";
 import { approvedSellerProducts, getSellerForUser, productVisibility } from "../lib/product-visibility";
@@ -13,6 +13,7 @@ import {
   DeleteProductParams,
   GetTrendingProductsQueryParams,
   GetFreshPicksQueryParams,
+  CreateReviewBody,
 } from "@workspace/api-zod";
 
 const router = Router();
@@ -169,9 +170,20 @@ router.delete("/products/:id", requireAuth, requireRole("seller", "admin"), asyn
   res.sendStatus(204);
 });
 
+// Path ids must be plain positive integers ("12abc" -> 400, not a DB error).
+function parseId(raw: string | string[] | undefined): number | null {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value || !/^\d+$/.test(value)) return null;
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
 router.get("/products/:id/reviews", async (req, res): Promise<void> => {
-  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const id = parseInt(rawId, 10);
+  const id = parseId(req.params.id);
+  if (id === null) {
+    res.status(400).json({ error: "Invalid product id" });
+    return;
+  }
   const rows = await db.select({
     id: reviewsTable.id,
     productId: reviewsTable.productId,
@@ -187,20 +199,46 @@ router.get("/products/:id/reviews", async (req, res): Promise<void> => {
 });
 
 router.post("/products/:id/reviews", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
-  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const id = parseInt(rawId, 10);
-  const { rating, comment } = req.body;
-  if (!rating || rating < 1 || rating > 5) {
-    res.status(400).json({ error: "Rating must be 1-5" });
+  const user = (req as typeof req & { user: { id: number; role: string } }).user;
+  const id = parseId(req.params.id);
+  if (id === null) {
+    res.status(400).json({ error: "Invalid product id" });
     return;
   }
-  const [review] = await db.insert(reviewsTable).values({ productId: id, userId: user.id, rating, comment }).returning();
-  const allReviews = await db.select({ rating: reviewsTable.rating }).from(reviewsTable)
-    .where(eq(reviewsTable.productId, id));
-  const avg = allReviews.reduce((sum, row) => sum + row.rating, 0) / allReviews.length;
-  await db.update(productsTable).set({ rating: avg, reviewCount: allReviews.length })
-    .where(eq(productsTable.id, id));
+  const [product] = await db.select({ id: productsTable.id }).from(productsTable)
+    .where(and(eq(productsTable.id, id), approvedSellerProducts()));
+  if (!product) {
+    res.status(404).json({ error: "Product not found" });
+    return;
+  }
+  const parsed = CreateReviewBody.safeParse(req.body);
+  if (!parsed.success || !Number.isInteger(parsed.data.rating)) {
+    res.status(400).json({ error: "Rating must be a whole number from 1 to 5" });
+    return;
+  }
+  const { rating, comment } = parsed.data;
+  // Only buyers with a delivered order containing this product may review.
+  const [purchase] = await db.select({ id: ordersTable.id }).from(ordersTable)
+    .innerJoin(orderItemsTable, eq(orderItemsTable.orderId, ordersTable.id))
+    .where(and(eq(ordersTable.userId, user.id), eq(ordersTable.status, "delivered"), eq(orderItemsTable.productId, id)))
+    .limit(1);
+  if (user.role !== "buyer" || !purchase) {
+    res.status(403).json({ error: "Only buyers who received this product can review it" });
+    return;
+  }
+  const review = await db.transaction(async (tx) => {
+    const [inserted] = await tx.insert(reviewsTable).values({ productId: id, userId: user.id, rating, comment })
+      .onConflictDoNothing({ target: [reviewsTable.productId, reviewsTable.userId] }).returning();
+    if (!inserted) return null;
+    const [stats] = await tx.select({ avg: sql<number>`avg(${reviewsTable.rating})::float8`, count: sql<number>`count(*)::int` })
+      .from(reviewsTable).where(eq(reviewsTable.productId, id));
+    await tx.update(productsTable).set({ rating: stats.avg, reviewCount: stats.count }).where(eq(productsTable.id, id));
+    return inserted;
+  });
+  if (!review) {
+    res.status(409).json({ error: "You have already reviewed this product" });
+    return;
+  }
   const [author] = await db.select({ name: usersTable.name, avatar: usersTable.avatar })
     .from(usersTable).where(eq(usersTable.id, user.id));
   res.status(201).json({ ...review, userName: author?.name ?? null, userAvatar: author?.avatar ?? null });
