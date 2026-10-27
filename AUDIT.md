@@ -83,6 +83,8 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | M7 | Expired/invalid token isn't handled globally; `ProtectedRoute` calls `setLocation` during render (Likely React warning) | `App.tsx:52-76` | 401 → logout + redirect; use `<Redirect>` |
 | M8 | Admin can set any arbitrary role string | `AdminUpdateUserBody.role: z.string()` | Enum `buyer | seller | admin` in OpenAPI spec |
 | M9 | 1.01 MB JS bundle; N+1 queries in `enrichProduct` / categories count | Build output; `routes/products.ts:18` | Route-level `lazy()`; joins |
+| M10 | `orderCount` is never incremented, so "Trending" ordering is meaningless. Batch 6 | `routes/products.ts` trending sorts by `orderCount`; checkout never updates it | Increment by item quantity at checkout; decrement on cancel |
+| M11 | No review form in the UI (M1 is server-side only). Batch 6 | `pages/ProductDetail.tsx` has no `useCreateReview` | Review form on ProductDetail for eligible buyers (delivered order containing the product) |
 
 ### 🟢 LOW — Replit branding & cleanup
 
@@ -96,6 +98,7 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | L6 | ~13.7 MB of **unreferenced** images: 7 PNGs (1–2 MB each) in `public/images/` and 10 JPGs in `public/images/products/`; `IMAGES` constant unused | `public/images`, `src/lib/constants.ts` |
 | L7 | Category filter chips on the category page show a visible horizontal scrollbar: `scrollbar-hide` class is not defined anywhere (no plugin/CSS). Fix in Batch 6 | `pages/CategoryBrowse.tsx:59` |
 | L8 | Checkout payment method card sits in the left half of a two-column grid now that only COD remains; make the single option full width. Batch 3, in the H10 commit | `pages/Checkout.tsx:200` |
+| L9 | A suspended (or otherwise non-approved) seller can still delete their own products. Batch 6 | `routes/products.ts` `DELETE /products/:id` checks ownership but not seller status |
 
 Note: the visible Replit badge on the live site is injected by Replit hosting. It disappears automatically once hosted on Vercel; the CSS hack should still be deleted.
 
@@ -125,7 +128,7 @@ Note: the visible Replit badge on the live site is injected by Replit hosting. I
 | 3 | Business-logic correctness | H5, H7, H8, H9 (after C4), H10, H11 (after H9), H12, L8, M1, M2, M6, M8 |
 | 4 | Product images: one mapping, hosted assets, fallback, verification script | H3, L6 |
 | 5 | Remove Replit branding/config; README rewrite; `.env.example` | L1–L5, M3 |
-| 6 | Frontend robustness + hardening | M4, M5, M7, M9, L7 |
+| 6 | Frontend robustness + hardening | M4, M5, M7, M9, M10, M11, L7, L9 |
 | 7 | Payments decision (real Razorpay test mode vs COD-only) | H4 |
 | 8 | Vercel + Neon config; preview deploy; verify; promote to production | Phase 5–7 |
 
