@@ -85,6 +85,7 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | M9 | 1.01 MB JS bundle; N+1 queries in `enrichProduct` / categories count | Build output; `routes/products.ts:18` | Route-level `lazy()`; joins |
 | M10 | `orderCount` is never incremented, so "Trending" ordering is meaningless. Batch 6 | `routes/products.ts` trending sorts by `orderCount`; checkout never updates it | Increment by item quantity at checkout; decrement on cancel |
 | M11 | No review form in the UI (M1 is server-side only). Batch 6 | `pages/ProductDetail.tsx` has no `useCreateReview` | Review form on ProductDetail for eligible buyers (delivered order containing the product) |
+| M12 | Vite dev/preview servers listen on all interfaces with no host check (`host: "0.0.0.0"`, `allowedHosts: true`, a Replit carry-over): other devices on the network can reach the dev server, and DNS-rebinding protection is off. Batch 6 | `artifacts/instaveg/vite.config.ts` `server` / `preview` | Default to `localhost` and Vite's normal host check; allow opting in via an env var |
 
 ### 🟢 LOW — Replit branding & cleanup
 
@@ -129,7 +130,7 @@ Note: the visible Replit badge on the live site is injected by Replit hosting. I
 | 3 | Business-logic correctness | H5, H7, H8, H9 (after C4), H10, H11 (after H9), H12, L8, M1, M2, M6, M8 |
 | 4 | Product images: one mapping, hosted assets, fallback, verification script | H3, L6 |
 | 5 | Remove Replit branding/config; README rewrite; `.env.example` | L1–L5, M3 |
-| 6 | Frontend robustness + hardening | M4, M5, M7, M9, M10, M11, L7, L9 |
+| 6 | Frontend robustness + hardening | M4, M5, M7, M9, M10, M11, M12, L7, L9 |
 | 7 | Payments decision (real Razorpay test mode vs COD-only) | H4 |
 | 8 | Vercel + Neon config; preview deploy; verify; promote to production | Phase 5–7 |
 
