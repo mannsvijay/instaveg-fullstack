@@ -68,6 +68,7 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | H9 | **Seller product editing is not implemented** | `pages/seller/Products.tsx:82` Edit button links to `/seller/products/:id/edit`, but `App.tsx` has no such route and `pages/seller/AddProduct.tsx` has no edit mode | Add the route and an edit mode (load product, PATCH). Fix in Batch 3, after C4 |
 | H10 | **Checkout total mismatch: buyer is charged more than displayed** | `routes/cart.ts` `buildCartResponse` returns `total = subtotal + deliveryFee`; `routes/orders.ts` saves `subtotal + DELIVERY_FEE + PLATFORM_FEE` (₹5 more). `Checkout.tsx`/`Cart.tsx` show the cart total and no platform fee line | One source of truth: cart response includes `platformFee` and a total that includes it; Cart/Checkout show a "Platform fee" line; order total equals cart total exactly; test asserts it. Batch 3, with H7/M2 |
 | H11 | **Admin Products page missing**: sidebar links to `/admin/products` but there is no route or page | `layouts/AdminLayout.tsx:11`; no `/admin/products` route in `App.tsx` | Admin Products page: all products with seller name and stock, search, Edit (reuse H9 form; admin may edit any product), Delete with confirm dialog. Batch 3, after H9 |
+| H12 | **Cancelling an order does not restore stock** (once H8 decrements stock at checkout, cancelled orders permanently remove inventory) | `routes/orders.ts` `PATCH /orders/:id` only updates `status` | When an order moves to `cancelled`, restore each item's stock in the same transaction as the status change; test: checkout reduces stock, cancel restores it exactly. Batch 3, own commit after H7/M2 |
 
 ### 🟡 MEDIUM
 
@@ -121,7 +122,7 @@ Note: the visible Replit badge on the live site is injected by Replit hosting. I
 | 0 | **Safety net**: back up live Replit DB; create `fix/audit` branch; get local dev running | H6, manual steps |
 | 1 | Make the build green; reproducible seed with stable slugs | H1, H2 |
 | 2 | Lock down authorization | C1–C7 |
-| 3 | Business-logic correctness | H5, H7, H8, H9 (after C4), H10, H11 (after H9), L8, M1, M2, M6, M8 |
+| 3 | Business-logic correctness | H5, H7, H8, H9 (after C4), H10, H11 (after H9), H12, L8, M1, M2, M6, M8 |
 | 4 | Product images: one mapping, hosted assets, fallback, verification script | H3, L6 |
 | 5 | Remove Replit branding/config; README rewrite; `.env.example` | L1–L5, M3 |
 | 6 | Frontend robustness + hardening | M4, M5, M7, M9, L7 |
