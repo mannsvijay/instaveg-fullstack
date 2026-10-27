@@ -43,6 +43,7 @@ export default function Cart() {
   const items: any[] = cart?.items ?? [];
   const subtotal = cart?.subtotal ?? 0;
   const deliveryFee = cart?.deliveryFee ?? 0;
+  const platformFee = cart?.platformFee ?? 0;
   const total = cart?.total ?? 0;
 
   const updateQuantity = (productId: number, quantity: number) => {
@@ -165,6 +166,10 @@ export default function Cart() {
             <div className="flex justify-between text-sm mb-2">
               <span className="text-muted-foreground">Delivery fee</span>
               <span>₹{deliveryFee}</span>
+            </div>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-muted-foreground">Platform fee</span>
+              <span>₹{platformFee}</span>
             </div>
             <div className="border-t border-border/20 mt-2 pt-2 flex justify-between font-bold">
               <span>Total</span>

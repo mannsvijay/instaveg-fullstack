@@ -307,6 +307,7 @@ export interface Cart {
   updatedAt: string;
   subtotal?: number;
   deliveryFee?: number;
+  platformFee?: number;
   total?: number;
 }
 

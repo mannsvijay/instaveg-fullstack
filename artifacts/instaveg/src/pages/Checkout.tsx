@@ -156,6 +156,7 @@ export default function Checkout() {
   const items: any[] = cart?.items ?? [];
   const subtotal = cart?.subtotal ?? 0;
   const deliveryFee = cart?.deliveryFee ?? 0;
+  const platformFee = cart?.platformFee ?? 0;
   const total = cart?.total ?? 0;
 
   return (
@@ -197,7 +198,7 @@ export default function Checkout() {
         <h3 className="font-semibold flex items-center gap-2 mb-4">
           <CreditCard className="w-4 h-4 text-primary" /> Payment Method
         </h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           {[
             // COD-only (C5): Razorpay is hidden until real test-mode integration (H4).
             { value: "cod", label: "Cash on Delivery", icon: Wallet },
@@ -230,6 +231,7 @@ export default function Checkout() {
         <div className="border-t border-border/20 mt-3 pt-3 space-y-1.5 text-sm">
           <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>₹{subtotal.toFixed(0)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Delivery</span><span>₹{deliveryFee}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Platform fee</span><span>₹{platformFee}</span></div>
           <div className="flex justify-between font-bold text-base mt-1 pt-1 border-t border-border/20">
             <span>Total</span><span className="text-primary">₹{total.toFixed(0)}</span>
           </div>

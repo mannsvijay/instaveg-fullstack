@@ -389,6 +389,7 @@ export const GetCartResponse = zod.object({
   "updatedAt": zod.coerce.date(),
   "subtotal": zod.number().optional(),
   "deliveryFee": zod.number().optional(),
+  "platformFee": zod.number().optional(),
   "total": zod.number().optional()
 })
 
@@ -419,6 +420,7 @@ export const AddToCartResponse = zod.object({
   "updatedAt": zod.coerce.date(),
   "subtotal": zod.number().optional(),
   "deliveryFee": zod.number().optional(),
+  "platformFee": zod.number().optional(),
   "total": zod.number().optional()
 })
 
@@ -452,6 +454,7 @@ export const UpdateCartItemResponse = zod.object({
   "updatedAt": zod.coerce.date(),
   "subtotal": zod.number().optional(),
   "deliveryFee": zod.number().optional(),
+  "platformFee": zod.number().optional(),
   "total": zod.number().optional()
 })
 
@@ -481,6 +484,7 @@ export const RemoveFromCartResponse = zod.object({
   "updatedAt": zod.coerce.date(),
   "subtotal": zod.number().optional(),
   "deliveryFee": zod.number().optional(),
+  "platformFee": zod.number().optional(),
   "total": zod.number().optional()
 })
 

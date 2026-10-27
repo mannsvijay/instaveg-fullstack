@@ -3,10 +3,10 @@ import { db, cartsTable, cartItemsTable, productsTable, sellersTable } from "@wo
 import { and, eq } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import { approvedSellerProducts } from "../lib/product-visibility";
+import { priceCart } from "../lib/pricing";
 import { AddToCartBody, UpdateCartItemBody, UpdateCartItemParams, RemoveFromCartParams } from "@workspace/api-zod";
 
 const router = Router();
-const DELIVERY_FEE = 40;
 
 async function getOrCreateCart(userId: number) {
   const [existing] = await db.select().from(cartsTable).where(eq(cartsTable.userId, userId));
@@ -21,6 +21,7 @@ async function buildCartResponse(cart: { id: number; userId: number; updatedAt: 
     productId: cartItemsTable.productId,
     quantity: cartItemsTable.quantity,
     price: cartItemsTable.price,
+    currentPrice: productsTable.price,
     productName: productsTable.name,
     productImage: productsTable.images,
     productUnit: productsTable.unit,
@@ -32,23 +33,20 @@ async function buildCartResponse(cart: { id: number; userId: number; updatedAt: 
     .leftJoin(sellersTable, eq(productsTable.sellerId, sellersTable.id))
     .where(eq(cartItemsTable.cartId, cart.id));
 
-  const formattedItems = items.map((item) => ({
+  // Price at the product's current price, exactly as checkout will (H10).
+  const formattedItems = items.map(({ currentPrice, ...item }) => ({
     ...item,
-    price: item.price / 100,
+    price: currentPrice ?? item.price / 100,
     productImage: Array.isArray(item.productImage) ? (item.productImage[0] ?? null) : null,
     sellerName: item.sellerName ?? null,
   }));
-  const subtotal = formattedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const deliveryFee = formattedItems.length > 0 ? DELIVERY_FEE : 0;
 
   return {
     id: cart.id,
     userId: cart.userId,
     items: formattedItems,
     updatedAt: cart.updatedAt.toISOString(),
-    subtotal,
-    deliveryFee,
-    total: subtotal + deliveryFee,
+    ...priceCart(formattedItems),
   };
 }
 

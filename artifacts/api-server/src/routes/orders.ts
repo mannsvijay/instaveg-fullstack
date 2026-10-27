@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, ordersTable, orderItemsTable, cartItemsTable, cartsTable, productsTable, addressesTable, usersTable, sellersTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
+import { priceCart } from "../lib/pricing";
 import {
   CreateOrderBody, GetOrderParams, ListOrdersQueryParams, UpdateOrderStatusParams,
   UpdateOrderStatusBody, CreatePaymentParams, VerifyPaymentParams, VerifyPaymentBody,
@@ -9,8 +10,6 @@ import {
 import crypto from "crypto";
 
 const router = Router();
-const PLATFORM_FEE = 5;
-const DELIVERY_FEE = 40;
 
 type AuthUser = { id: number; role: string };
 
@@ -103,7 +102,7 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
   const cartItems = await db.select({
     productId: cartItemsTable.productId,
     quantity: cartItemsTable.quantity,
-    price: cartItemsTable.price,
+    price: productsTable.price,
     name: productsTable.name,
     images: productsTable.images,
     unit: productsTable.unit,
@@ -122,7 +121,8 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: "Address not found" });
     return;
   }
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price / 100) * item.quantity, 0);
+  const lines = cartItems.map((item) => ({ ...item, price: item.price ?? 0 }));
+  const { subtotal, deliveryFee, platformFee, total } = priceCart(lines);
   const firstSellerId = cartItems[0]?.sellerId ?? null;
   const [order] = await db.insert(ordersTable).values({
     userId: user.id,
@@ -133,17 +133,17 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     addressId,
     addressSnapshot: address ? JSON.stringify(address) : null,
     subtotal,
-    deliveryFee: DELIVERY_FEE,
-    platformFee: PLATFORM_FEE,
-    total: subtotal + DELIVERY_FEE + PLATFORM_FEE,
+    deliveryFee,
+    platformFee,
+    total,
     notes,
   }).returning();
 
-  await db.insert(orderItemsTable).values(cartItems.map((item) => ({
+  await db.insert(orderItemsTable).values(lines.map((item) => ({
     orderId: order.id,
     productId: item.productId,
     quantity: item.quantity,
-    price: item.price / 100,
+    price: item.price,
     productName: item.name ?? null,
     productImage: Array.isArray(item.images) ? (item.images[0] ?? null) : null,
     productUnit: item.unit ?? null,
