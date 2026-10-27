@@ -23,6 +23,7 @@ import type {
   Address,
   AddressInput,
   AdminListOrdersParams,
+  AdminListSellersParams,
   AdminListUsersParams,
   AdminStats,
   AdminUserUpdate,
@@ -43,14 +44,13 @@ import type {
   Order,
   OrderInput,
   OrderStatusUpdate,
-  PaymentOrder,
-  PaymentVerification,
   Product,
   ProductInput,
   ProductList,
   ProductUpdate,
   RegisterInput,
   Review,
+  ReviewEligibility,
   ReviewInput,
   Seller,
   SellerApproval,
@@ -1354,6 +1354,83 @@ export const useCreateReview = <TError = ErrorType<unknown>,
       return useMutation(getCreateReviewMutationOptions(options));
     }
 
+export const getGetReviewEligibilityUrl = (id: number,) => {
+
+
+
+
+  return `/api/products/${id}/reviews/eligibility`
+}
+
+/**
+ * @summary Whether the signed-in user may review this product (only checks the caller's own orders and reviews)
+ */
+export const getReviewEligibility = async (id: number, options?: RequestInit): Promise<ReviewEligibility> => {
+
+  return customFetch<ReviewEligibility>(getGetReviewEligibilityUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReviewEligibilityQueryKey = (id: number,) => {
+    return [
+    `/api/products/${id}/reviews/eligibility`
+    ] as const;
+    }
+
+
+export const getGetReviewEligibilityQueryOptions = <TData = Awaited<ReturnType<typeof getReviewEligibility>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReviewEligibility>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReviewEligibilityQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReviewEligibility>>> = ({ signal }) => getReviewEligibility(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReviewEligibility>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetReviewEligibilityQueryResult = NonNullable<Awaited<ReturnType<typeof getReviewEligibility>>>
+export type GetReviewEligibilityQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Whether the signed-in user may review this product (only checks the caller's own orders and reviews)
+ */
+
+export function useGetReviewEligibility<TData = Awaited<ReturnType<typeof getReviewEligibility>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReviewEligibility>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetReviewEligibilityQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getGetCartUrl = () => {
 
 
@@ -1809,9 +1886,9 @@ export const getCreateOrderUrl = () => {
 /**
  * @summary Place an order
  */
-export const createOrder = async (orderInput: OrderInput, options?: RequestInit): Promise<Order> => {
+export const createOrder = async (orderInput: OrderInput, options?: RequestInit): Promise<Order[]> => {
 
-  return customFetch<Order>(getCreateOrderUrl(),
+  return customFetch<Order[]>(getCreateOrderUrl(),
   {
     ...options,
     method: 'POST',
@@ -2016,148 +2093,6 @@ export const useUpdateOrderStatus = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateOrderStatusMutationOptions(options));
-    }
-
-export const getCreatePaymentUrl = (id: number,) => {
-
-
-
-
-  return `/api/orders/${id}/payment/create`
-}
-
-/**
- * @summary Create Razorpay payment order
- */
-export const createPayment = async (id: number, options?: RequestInit): Promise<PaymentOrder> => {
-
-  return customFetch<PaymentOrder>(getCreatePaymentUrl(id),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-export const getCreatePaymentMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPayment>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createPayment>>, TError,{id: number}, TContext> => {
-
-const mutationKey = ['createPayment'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPayment>>, {id: number}> = (props) => {
-          const {id} = props ?? {};
-
-          return  createPayment(id,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreatePaymentMutationResult = NonNullable<Awaited<ReturnType<typeof createPayment>>>
-
-    export type CreatePaymentMutationError = ErrorType<unknown>
-
-    /**
- * @summary Create Razorpay payment order
- */
-export const useCreatePayment = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPayment>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createPayment>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getCreatePaymentMutationOptions(options));
-    }
-
-export const getVerifyPaymentUrl = (id: number,) => {
-
-
-
-
-  return `/api/orders/${id}/payment/verify`
-}
-
-/**
- * @summary Verify Razorpay payment
- */
-export const verifyPayment = async (id: number,
-    paymentVerification: PaymentVerification, options?: RequestInit): Promise<Order> => {
-
-  return customFetch<Order>(getVerifyPaymentUrl(id),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      paymentVerification,)
-  }
-);}
-
-
-
-
-export const getVerifyPaymentMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyPayment>>, TError,{id: number;data: BodyType<PaymentVerification>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof verifyPayment>>, TError,{id: number;data: BodyType<PaymentVerification>}, TContext> => {
-
-const mutationKey = ['verifyPayment'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyPayment>>, {id: number;data: BodyType<PaymentVerification>}> = (props) => {
-          const {id,data} = props ?? {};
-
-          return  verifyPayment(id,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type VerifyPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof verifyPayment>>>
-    export type VerifyPaymentMutationBody = BodyType<PaymentVerification>
-    export type VerifyPaymentMutationError = ErrorType<unknown>
-
-    /**
- * @summary Verify Razorpay payment
- */
-export const useVerifyPayment = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyPayment>>, TError,{id: number;data: BodyType<PaymentVerification>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof verifyPayment>>,
-        TError,
-        {id: number;data: BodyType<PaymentVerification>},
-        TContext
-      > => {
-      return useMutation(getVerifyPaymentMutationOptions(options));
     }
 
 export const getGetWishlistUrl = () => {
@@ -3137,6 +3072,83 @@ export function useGetSellerOrders<TData = Awaited<ReturnType<typeof getSellerOr
 
 
 
+export const getGetSellerProfileUrl = () => {
+
+
+
+
+  return `/api/sellers/profile`
+}
+
+/**
+ * @summary Get the logged-in seller's own profile
+ */
+export const getSellerProfile = async ( options?: RequestInit): Promise<Seller> => {
+
+  return customFetch<Seller>(getGetSellerProfileUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSellerProfileQueryKey = () => {
+    return [
+    `/api/sellers/profile`
+    ] as const;
+    }
+
+
+export const getGetSellerProfileQueryOptions = <TData = Awaited<ReturnType<typeof getSellerProfile>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSellerProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSellerProfile>>> = ({ signal }) => getSellerProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSellerProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSellerProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getSellerProfile>>>
+export type GetSellerProfileQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the logged-in seller's own profile
+ */
+
+export function useGetSellerProfile<TData = Awaited<ReturnType<typeof getSellerProfile>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSellerProfileQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getUpdateSellerProfileUrl = () => {
 
 
@@ -3440,6 +3452,90 @@ export const useAdminUpdateUser = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getAdminUpdateUserMutationOptions(options));
     }
+
+export const getAdminListSellersUrl = (params?: AdminListSellersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/sellers?${stringifiedParams}` : `/api/admin/sellers`
+}
+
+/**
+ * @summary List sellers, optionally filtered by status (admin only)
+ */
+export const adminListSellers = async (params?: AdminListSellersParams, options?: RequestInit): Promise<Seller[]> => {
+
+  return customFetch<Seller[]>(getAdminListSellersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminListSellersQueryKey = (params?: AdminListSellersParams,) => {
+    return [
+    `/api/admin/sellers`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAdminListSellersQueryOptions = <TData = Awaited<ReturnType<typeof adminListSellers>>, TError = ErrorType<unknown>>(params?: AdminListSellersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListSellers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListSellersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListSellers>>> = ({ signal }) => adminListSellers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListSellers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminListSellersQueryResult = NonNullable<Awaited<ReturnType<typeof adminListSellers>>>
+export type AdminListSellersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List sellers, optionally filtered by status (admin only)
+ */
+
+export function useAdminListSellers<TData = Awaited<ReturnType<typeof adminListSellers>>, TError = ErrorType<unknown>>(
+ params?: AdminListSellersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListSellers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminListSellersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getAdminGetPendingSellersUrl = () => {
 

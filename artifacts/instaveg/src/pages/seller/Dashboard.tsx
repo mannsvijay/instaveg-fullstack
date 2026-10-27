@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { useGetSellerStats, getGetSellerStatsQueryKey } from "@workspace/api-client-react";
+import { useGetSellerStats, getGetSellerStatsQueryKey, useGetSellerProfile, getGetSellerProfileQueryKey } from "@workspace/api-client-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ export default function SellerDashboard() {
   const { user } = useAuthStore();
   const { data: statsRaw, isLoading } = useGetSellerStats({ query: { queryKey: getGetSellerStatsQueryKey(), enabled: !!user } });
   const stats = statsRaw as any;
+  // Only approved sellers may list products (H5).
+  const { data: profile } = useGetSellerProfile({ query: { queryKey: getGetSellerProfileQueryKey(), enabled: !!user } });
+  const isApproved = profile?.status === "approved";
 
   const statCards = [
     { label: "Total Revenue", value: stats ? `₹${stats.totalRevenue?.toFixed(0)}` : null, icon: TrendingUp, color: "bg-green-50 text-green-700" },
@@ -26,10 +29,30 @@ export default function SellerDashboard() {
           <h1 className="text-2xl font-bold font-serif text-foreground">Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-1">Welcome back, {user?.name ?? "Seller"}</p>
         </div>
-        <Link href="/seller/add-product">
-          <Button className="rounded-xl gap-2"><Plus className="w-4 h-4" /> Add Product</Button>
-        </Link>
+        {isApproved ? (
+          <Link href="/seller/add-product">
+            <Button className="rounded-xl gap-2"><Plus className="w-4 h-4" /> Add Product</Button>
+          </Link>
+        ) : (
+          <Button className="rounded-xl gap-2" disabled title="Available once your seller account is approved">
+            <Plus className="w-4 h-4" /> Add Product
+          </Button>
+        )}
       </div>
+
+      {profile && !isApproved && (
+        <div className="mb-8 flex items-start gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
+          <Clock className="w-5 h-5 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-sm">
+              {profile.status === "pending" ? "Your seller account is awaiting approval" : `Your seller account is ${profile.status}`}
+            </p>
+            <p className="text-sm mt-0.5">
+              You can add and edit products once an admin approves your store. Your products are hidden from buyers until then.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

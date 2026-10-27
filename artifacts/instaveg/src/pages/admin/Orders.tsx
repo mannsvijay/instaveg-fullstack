@@ -19,6 +19,23 @@ const STATUS_COLOR: Record<string, string> = {
 
 const STATUSES = ["pending", "confirmed", "preparing", "dispatched", "delivered", "cancelled"];
 
+// M14: mirror the API's order rules (C2): one step forward, or cancel from
+// pending/confirmed; delivered and cancelled are final.
+const NEXT_STATUS: Record<string, string> = {
+  pending: "confirmed",
+  confirmed: "preparing",
+  preparing: "dispatched",
+  dispatched: "delivered",
+};
+const CANCELLABLE = ["pending", "confirmed"];
+
+function allowedStatuses(current: string): string[] {
+  const options = [current];
+  if (NEXT_STATUS[current]) options.push(NEXT_STATUS[current]);
+  if (CANCELLABLE.includes(current)) options.push("cancelled");
+  return options;
+}
+
 export default function AdminOrders() {
   const { user } = useAuthStore();
   const { toast } = useToast();
@@ -39,6 +56,14 @@ export default function AdminOrders() {
         onSuccess: () => {
           qc.invalidateQueries({ queryKey: getAdminListOrdersQueryKey({}) });
           toast({ title: `Order updated to ${s}` });
+        },
+        onError: (err) => {
+          const apiMessage = (err as { data?: { error?: unknown } }).data?.error;
+          toast({
+            title: "Could not update order",
+            description: typeof apiMessage === "string" ? apiMessage : err instanceof Error ? err.message : undefined,
+            variant: "destructive",
+          });
         },
       }
     );
@@ -90,9 +115,11 @@ export default function AdminOrders() {
                 <select
                   value={order.status}
                   onChange={(e) => updateStatus(order.id, e.target.value)}
-                  className="text-xs border border-border/40 rounded-lg px-2 py-1 bg-white/80 outline-none"
+                  disabled={allowedStatuses(order.status).length === 1}
+                  aria-label={`Status of order ${order.id}`}
+                  className="text-xs border border-border/40 rounded-lg px-2 py-1 bg-white/80 outline-none disabled:opacity-60"
                 >
-                  {STATUSES.map((s) => (
+                  {allowedStatuses(order.status).map((s) => (
                     <option key={s} value={s} className="capitalize">{s}</option>
                   ))}
                 </select>

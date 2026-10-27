@@ -1,17 +1,40 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
-import { useCreateProduct, useListCategories, getListProductsQueryKey, getListCategoriesQueryKey } from "@workspace/api-client-react";
+import { useEffect, useState } from "react";
+import { useLocation, useParams } from "wouter";
+import {
+  useCreateProduct, useUpdateProduct, useGetProduct, useListCategories, useGetSellerProfile,
+  getListProductsQueryKey, getListCategoriesQueryKey, getGetProductQueryKey, getGetSellerProfileQueryKey,
+} from "@workspace/api-client-react";
+import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, PackageX } from "lucide-react";
 
 export default function AddProduct() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { user } = useAuthStore();
+  const listPath = user?.role === "admin" ? "/admin/products" : "/seller/products";
+
+  // Edit mode when mounted at /seller/products/:id/edit or /admin/products/:id/edit (H9).
+  const { id } = useParams<{ id?: string }>();
+  const isEdit = id !== undefined;
+  const productId = Number(id);
+  const validId = isEdit && Number.isInteger(productId) && productId > 0;
+  const { data: product, isLoading: productLoading, isError: productError } = useGetProduct(productId, {
+    query: { queryKey: getGetProductQueryKey(productId), enabled: validId, retry: false },
+  });
+  const isSeller = user?.role === "seller";
+  const { data: sellerProfile, isError: profileError } = useGetSellerProfile({
+    query: { queryKey: getGetSellerProfileQueryKey(), enabled: isEdit && isSeller, retry: false },
+  });
+  // Sellers may only edit their own products; the API enforces this too (404).
+  const notOwner = isEdit && isSeller && !!product && !!sellerProfile && (product as any).sellerId !== sellerProfile.id;
+  const [notFound, setNotFound] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -32,47 +55,107 @@ export default function AddProduct() {
   const categories = (categoriesRaw as any[]) ?? [];
 
   const createMutation = useCreateProduct();
+  const updateMutation = useUpdateProduct();
+  const isPending = createMutation.isPending || updateMutation.isPending;
+
+  useEffect(() => {
+    if (!isEdit || !product || prefilled) return;
+    const p = product as any;
+    setForm({
+      name: p.name ?? "",
+      description: p.description ?? "",
+      price: p.price != null ? String(p.price) : "",
+      mrp: p.mrp != null ? String(p.mrp) : "",
+      unit: p.unit ?? "kg",
+      stock: p.stock != null ? String(p.stock) : "",
+      categoryId: p.categoryId != null ? String(p.categoryId) : "",
+      images: Array.isArray(p.images) ? p.images.join(", ") : "",
+      isOrganic: !!p.isOrganic,
+      isFresh: p.isFresh ?? true,
+      nutritionInfo: p.nutritionInfo ?? "",
+      tags: Array.isArray(p.tags) ? p.tags.join(", ") : "",
+    });
+    setPrefilled(true);
+  }, [isEdit, product, prefilled]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const data = {
+      name: form.name,
+      description: form.description,
+      price: parseFloat(form.price),
+      unit: form.unit,
+      stock: parseInt(form.stock),
+      categoryId: parseInt(form.categoryId),
+      images: form.images ? form.images.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      isOrganic: form.isOrganic,
+      isFresh: form.isFresh,
+      nutritionInfo: form.nutritionInfo,
+      tags: form.tags ? form.tags.split(",").map((s) => s.trim()).filter(Boolean) : [],
+    };
+    const onError = (err: unknown) => {
+      toast({ title: isEdit ? "Failed to save product" : "Failed to create product", description: err instanceof Error ? err.message : "Error", variant: "destructive" });
+    };
+    if (isEdit) {
+      // Slug is never sent; the server keeps it stable on edit.
+      updateMutation.mutate(
+        { id: productId, data: { ...data, mrp: form.mrp ? parseFloat(form.mrp) : null } },
+        {
+          onSuccess: () => {
+            qc.invalidateQueries({ queryKey: getListProductsQueryKey({}) });
+            qc.invalidateQueries({ queryKey: getGetProductQueryKey(productId) });
+            toast({ title: "Product updated" });
+            setLocation(listPath);
+          },
+          onError: (err) => {
+            if ((err as { status?: number }).status === 404) setNotFound(true);
+            else onError(err);
+          },
+        }
+      );
+      return;
+    }
     createMutation.mutate(
-      {
-        data: {
-          name: form.name,
-          description: form.description,
-          price: parseFloat(form.price),
-          mrp: form.mrp ? parseFloat(form.mrp) : undefined,
-          unit: form.unit,
-          stock: parseInt(form.stock),
-          categoryId: parseInt(form.categoryId),
-          images: form.images ? form.images.split(",").map((s) => s.trim()).filter(Boolean) : [],
-          isOrganic: form.isOrganic,
-          isFresh: form.isFresh,
-          nutritionInfo: form.nutritionInfo,
-          tags: form.tags ? form.tags.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        },
-      },
+      { data: { ...data, mrp: form.mrp ? parseFloat(form.mrp) : undefined } },
       {
         onSuccess: () => {
           qc.invalidateQueries({ queryKey: getListProductsQueryKey({}) });
           toast({ title: "Product created successfully!" });
           setLocation("/seller/products");
         },
-        onError: (err) => {
-          toast({ title: "Failed to create product", description: err instanceof Error ? err.message : "Error", variant: "destructive" });
-        },
+        onError,
       }
     );
   };
 
   const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
+  if (isEdit && (!validId || productError || profileError || notOwner || notFound)) {
+    // 404 also covers products the caller may not edit.
+    return (
+      <div className="p-6 max-w-2xl text-center py-20">
+        <PackageX className="w-12 h-12 text-primary/30 mx-auto mb-4" />
+        <h1 className="text-xl font-bold font-serif mb-2">Product not found</h1>
+        <p className="text-muted-foreground mb-6">This product doesn't exist or you don't have access to edit it.</p>
+        <Button onClick={() => setLocation(listPath)} className="rounded-xl">Back to products</Button>
+      </div>
+    );
+  }
+
+  if (isEdit && (productLoading || !prefilled || (isSeller && !sellerProfile))) {
+    return (
+      <div className="p-6 flex justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 max-w-2xl">
       <button onClick={() => history.back()} className="flex items-center gap-2 text-muted-foreground text-sm mb-6">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
-      <h1 className="text-2xl font-bold font-serif mb-6">Add New Product</h1>
+      <h1 className="text-2xl font-bold font-serif mb-6">{isEdit ? "Edit Product" : "Add New Product"}</h1>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="bg-white/70 backdrop-blur rounded-2xl border border-border/30 p-5 space-y-4">
@@ -158,8 +241,8 @@ export default function AddProduct() {
           </div>
         </div>
 
-        <Button type="submit" className="w-full h-12 rounded-xl font-semibold" disabled={createMutation.isPending}>
-          {createMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Product"}
+        <Button type="submit" className="w-full h-12 rounded-xl font-semibold" disabled={isPending}>
+          {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : isEdit ? "Save Changes" : "Create Product"}
         </Button>
       </form>
     </div>

@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { Package, CheckCircle, Clock, Truck, Home, ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { ProductImage } from "@/components/ProductImage";
 
 const STATUS_STEPS = ["pending", "confirmed", "preparing", "dispatched", "delivered"];
 const STEP_ICONS = [Clock, CheckCircle, Package, Truck, Home];
@@ -97,13 +98,7 @@ export default function OrderDetail() {
         <div className="space-y-3">
           {(order.items ?? []).map((item: any) => (
             <div key={item.id} className="flex items-center gap-3">
-              {item.productImage ? (
-                <img src={item.productImage} alt={item.productName} className="w-12 h-12 rounded-xl object-cover bg-secondary" />
-              ) : (
-                <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-                  <Package className="w-5 h-5 text-primary/30" />
-                </div>
-              )}
+              <ProductImage src={item.productImage} alt={item.productName ?? "Product"} className="w-12 rounded-xl" />
               <div className="flex-1">
                 <p className="text-sm font-medium">{item.productName}</p>
                 <p className="text-xs text-muted-foreground">{item.quantity}x · per {item.productUnit}</p>

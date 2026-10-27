@@ -1,7 +1,15 @@
 import jwt from "jsonwebtoken";
 import { type Request, type Response, type NextFunction } from "express";
 
-const JWT_SECRET = process.env.SESSION_SECRET || "instaveg-secret-key";
+function requireSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("SESSION_SECRET must be set and at least 32 characters long");
+  }
+  return secret;
+}
+
+const JWT_SECRET = requireSessionSecret();
 
 export function signToken(payload: { id: number; email: string; role: string }): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
@@ -13,6 +21,12 @@ export function verifyToken(token: string): { id: number; email: string; role: s
   } catch {
     return null;
   }
+}
+
+// For public routes that show more to signed-in callers; invalid tokens count as anonymous.
+export function optionalUser(req: Request): { id: number; email: string; role: string } | null {
+  const auth = req.headers.authorization;
+  return auth?.startsWith("Bearer ") ? verifyToken(auth.slice(7)) : null;
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {

@@ -14,5 +14,6 @@ export interface Cart {
   updatedAt: Date;
   subtotal?: number;
   deliveryFee?: number;
+  platformFee?: number;
   total?: number;
 }

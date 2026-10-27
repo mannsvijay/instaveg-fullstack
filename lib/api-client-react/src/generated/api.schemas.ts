@@ -67,9 +67,18 @@ export interface UserProfileUpdate {
   avatar?: string;
 }
 
+export type AdminUserUpdateRole = typeof AdminUserUpdateRole[keyof typeof AdminUserUpdateRole];
+
+
+export const AdminUserUpdateRole = {
+  buyer: 'buyer',
+  seller: 'seller',
+  admin: 'admin',
+} as const;
+
 export interface AdminUserUpdate {
   isActive?: boolean;
-  role?: string;
+  role?: AdminUserUpdateRole;
 }
 
 export interface Address {
@@ -298,6 +307,7 @@ export interface Cart {
   updatedAt: string;
   subtotal?: number;
   deliveryFee?: number;
+  platformFee?: number;
   total?: number;
 }
 
@@ -354,8 +364,6 @@ export interface Order {
   paymentStatus: OrderPaymentStatus;
   /** @nullable */
   paymentMethod?: string | null;
-  /** @nullable */
-  razorpayOrderId?: string | null;
   items?: OrderItem[];
   /** @nullable */
   addressId?: number | null;
@@ -377,16 +385,19 @@ export interface Order {
   buyerName?: string | null;
 }
 
+/**
+ * Cash on delivery is the only payment method (COD-only by design).
+ */
 export type OrderInputPaymentMethod = typeof OrderInputPaymentMethod[keyof typeof OrderInputPaymentMethod];
 
 
 export const OrderInputPaymentMethod = {
-  razorpay: 'razorpay',
   cod: 'cod',
 } as const;
 
 export interface OrderInput {
   addressId: number;
+  /** Cash on delivery is the only payment method (COD-only by design). */
   paymentMethod: OrderInputPaymentMethod;
   notes?: string;
 }
@@ -408,17 +419,22 @@ export interface OrderStatusUpdate {
   eta?: string;
 }
 
-export interface PaymentOrder {
-  razorpayOrderId: string;
-  amount: number;
-  currency: string;
-  keyId: string;
-}
+/**
+ * @nullable
+ */
+export type ReviewEligibilityReason = typeof ReviewEligibilityReason[keyof typeof ReviewEligibilityReason] | null;
 
-export interface PaymentVerification {
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
+
+export const ReviewEligibilityReason = {
+  not_buyer: 'not_buyer',
+  no_delivered_order: 'no_delivered_order',
+  already_reviewed: 'already_reviewed',
+} as const;
+
+export interface ReviewEligibility {
+  canReview: boolean;
+  /** @nullable */
+  reason?: ReviewEligibilityReason;
 }
 
 export interface Review {
@@ -498,6 +514,20 @@ role?: string;
 page?: number;
 search?: string;
 };
+
+export type AdminListSellersParams = {
+status?: AdminListSellersStatus;
+};
+
+export type AdminListSellersStatus = typeof AdminListSellersStatus[keyof typeof AdminListSellersStatus];
+
+
+export const AdminListSellersStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+  suspended: 'suspended',
+} as const;
 
 export type AdminListOrdersParams = {
 status?: string;

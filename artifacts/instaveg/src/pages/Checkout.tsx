@@ -4,8 +4,6 @@ import {
   useGetCart,
   useListAddresses,
   useCreateOrder,
-  useCreatePayment,
-  useVerifyPayment,
   getGetCartQueryKey,
   getListAddressesQueryKey,
 } from "@workspace/api-client-react";
@@ -15,23 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MapPin, CreditCard, Wallet, CheckCircle, Loader2 } from "lucide-react";
-
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
-function loadRazorpay(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (window.Razorpay) { resolve(true); return; }
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
+import { ProductImage } from "@/components/ProductImage";
 
 export default function Checkout() {
   const { user } = useAuthStore();
@@ -40,9 +22,8 @@ export default function Checkout() {
   const qc = useQueryClient();
 
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "cod">("cod");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [placedOrders, setPlacedOrders] = useState<any[] | null>(null);
 
   const { data: cartRaw } = useGetCart({ query: { queryKey: getGetCartQueryKey(), enabled: !!user } });
   const cart = cartRaw as any;
@@ -51,8 +32,6 @@ export default function Checkout() {
   const addresses = (addressesRaw as any[]) ?? [];
 
   const createOrderMutation = useCreateOrder();
-  const createPaymentMutation = useCreatePayment();
-  const verifyPaymentMutation = useVerifyPayment();
 
   const defaultAddress = addresses.find((a: any) => a.isDefault) ?? addresses[0];
   const activeAddress = selectedAddressId ?? defaultAddress?.id;
@@ -64,86 +43,52 @@ export default function Checkout() {
     }
     setLoading(true);
 
+    // COD only (C5). Checkout returns one order per seller (H7).
     createOrderMutation.mutate(
-      { data: { addressId: activeAddress, paymentMethod, notes: "" } },
+      { data: { addressId: activeAddress, paymentMethod: "cod", notes: "" } },
       {
-        onSuccess: async (orderRaw: any) => {
-          const order = orderRaw as any;
-
-          if (paymentMethod === "cod") {
-            qc.invalidateQueries({ queryKey: getGetCartQueryKey() });
-            setSuccess(true);
-            setLoading(false);
-            return;
-          }
-
-          // Razorpay flow
-          createPaymentMutation.mutate(
-            { id: order.id },
-            {
-              onSuccess: async (paymentData: any) => {
-                const loaded = await loadRazorpay();
-                if (!loaded) {
-                  toast({ title: "Payment gateway unavailable", variant: "destructive" });
-                  setLoading(false);
-                  return;
-                }
-
-                const options = {
-                  key: paymentData.keyId,
-                  amount: paymentData.amount,
-                  currency: paymentData.currency,
-                  order_id: paymentData.razorpayOrderId,
-                  name: "InstaVEG",
-                  description: `Order #${order.id}`,
-                  handler: (response: any) => {
-                    verifyPaymentMutation.mutate(
-                      {
-                        id: order.id,
-                        data: {
-                          razorpayOrderId: response.razorpay_order_id,
-                          razorpayPaymentId: response.razorpay_payment_id,
-                          razorpaySignature: response.razorpay_signature,
-                        },
-                      },
-                      {
-                        onSuccess: () => {
-                          qc.invalidateQueries({ queryKey: getGetCartQueryKey() });
-                          setSuccess(true);
-                          setLoading(false);
-                        },
-                      }
-                    );
-                  },
-                  modal: { ondismiss: () => setLoading(false) },
-                  theme: { color: "#31511E" },
-                };
-
-                const rzp = new window.Razorpay(options);
-                rzp.open();
-              },
-              onError: () => { setLoading(false); toast({ title: "Payment initiation failed", variant: "destructive" }); },
-            }
-          );
+        onSuccess: (orders) => {
+          qc.invalidateQueries({ queryKey: getGetCartQueryKey() });
+          setPlacedOrders(orders as any[]);
+          setLoading(false);
         },
-        onError: () => { setLoading(false); toast({ title: "Failed to place order", variant: "destructive" }); },
+        onError: (err) => {
+          setLoading(false);
+          const apiMessage = (err as { data?: { error?: unknown } }).data?.error;
+          toast({ title: "Failed to place order", description: typeof apiMessage === "string" ? apiMessage : undefined, variant: "destructive" });
+        },
       }
     );
   };
 
-  if (success) {
+  if (placedOrders) {
+    const paid = placedOrders.reduce((sum, order) => sum + (order.total ?? 0), 0);
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-sm"
+          className="text-center max-w-sm w-full"
         >
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold font-serif mb-2">Order Placed!</h2>
-          <p className="text-muted-foreground mb-8">Your fresh vegetables are on their way. Expected delivery in 30 minutes.</p>
+          <h2 className="text-2xl font-bold font-serif mb-2">{placedOrders.length > 1 ? `${placedOrders.length} Orders Placed!` : "Order Placed!"}</h2>
+          <p className="text-muted-foreground mb-6">
+            {placedOrders.length > 1 ? "Your items come from different farms, so each one sends its own order." : "Your fresh vegetables are on their way."}
+          </p>
+          <div className="bg-white/70 rounded-2xl border border-border/30 p-4 mb-8 text-sm text-left space-y-2">
+            {placedOrders.map((order) => (
+              <div key={order.id} className="flex justify-between gap-3">
+                <span className="text-muted-foreground truncate">#{order.id} · {order.sellerName ?? "Seller"}</span>
+                <span>₹{Number(order.total).toFixed(0)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between font-bold border-t border-border/20 pt-2">
+              <span>Total (Cash on Delivery)</span>
+              <span className="text-primary">₹{paid.toFixed(0)}</span>
+            </div>
+          </div>
           <div className="flex flex-col gap-3">
             <Button onClick={() => setLocation("/orders")} className="rounded-xl">Track Orders</Button>
             <Button variant="outline" onClick={() => setLocation("/")} className="rounded-xl">Continue Shopping</Button>
@@ -156,6 +101,7 @@ export default function Checkout() {
   const items: any[] = cart?.items ?? [];
   const subtotal = cart?.subtotal ?? 0;
   const deliveryFee = cart?.deliveryFee ?? 0;
+  const platformFee = cart?.platformFee ?? 0;
   const total = cart?.total ?? 0;
 
   return (
@@ -197,22 +143,10 @@ export default function Checkout() {
         <h3 className="font-semibold flex items-center gap-2 mb-4">
           <CreditCard className="w-4 h-4 text-primary" /> Payment Method
         </h3>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { value: "cod", label: "Cash on Delivery", icon: Wallet },
-            { value: "razorpay", label: "Razorpay", icon: CreditCard },
-          ].map(({ value, label, icon: Icon }) => (
-            <label
-              key={value}
-              className={`flex flex-col items-center gap-2 p-4 rounded-xl border cursor-pointer transition-colors text-center ${
-                paymentMethod === value ? "border-primary bg-primary/5" : "border-border/30 hover:border-primary/30"
-              }`}
-            >
-              <input type="radio" name="payment" className="sr-only" checked={paymentMethod === value} onChange={() => setPaymentMethod(value as any)} />
-              <Icon className="w-6 h-6 text-primary" />
-              <span className="text-sm font-medium">{label}</span>
-            </label>
-          ))}
+        {/* Cash on delivery is the only payment method (H4: COD-only by design). */}
+        <div className="flex flex-col items-center gap-2 p-4 rounded-xl border border-primary bg-primary/5 text-center">
+          <Wallet className="w-6 h-6 text-primary" />
+          <span className="text-sm font-medium">Cash on Delivery</span>
         </div>
       </div>
 
@@ -221,8 +155,9 @@ export default function Checkout() {
         <h3 className="font-semibold mb-3">Order Summary</h3>
         <div className="space-y-2">
           {items.map((item: any) => (
-            <div key={item.productId} className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{item.productName} × {item.quantity}</span>
+            <div key={item.productId} className="flex items-center justify-between gap-3 text-sm">
+              <ProductImage src={item.productImage} alt={item.productName ?? "Product"} className="w-10 rounded-lg" />
+              <span className="flex-1 min-w-0 truncate text-muted-foreground">{item.productName} × {item.quantity}</span>
               <span>₹{(item.price * item.quantity).toFixed(0)}</span>
             </div>
           ))}
@@ -230,6 +165,7 @@ export default function Checkout() {
         <div className="border-t border-border/20 mt-3 pt-3 space-y-1.5 text-sm">
           <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>₹{subtotal.toFixed(0)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Delivery</span><span>₹{deliveryFee}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Platform fee</span><span>₹{platformFee}</span></div>
           <div className="flex justify-between font-bold text-base mt-1 pt-1 border-t border-border/20">
             <span>Total</span><span className="text-primary">₹{total.toFixed(0)}</span>
           </div>

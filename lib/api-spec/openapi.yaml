@@ -368,6 +368,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/Review"
 
+  /products/{id}/reviews/eligibility:
+    get:
+      operationId: getReviewEligibility
+      tags: [reviews]
+      summary: Whether the signed-in user may review this product (only checks the caller's own orders and reviews)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Eligibility for the signed-in user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewEligibility"
+
   # CART
   /cart:
     get:
@@ -490,11 +509,13 @@ paths:
               $ref: "#/components/schemas/OrderInput"
       responses:
         "201":
-          description: Order placed
+          description: Orders placed, one per seller
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
 
   /orders/{id}:
     get:
@@ -535,51 +556,6 @@ paths:
       responses:
         "200":
           description: Updated order
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Order"
-
-  # PAYMENT
-  /orders/{id}/payment/create:
-    post:
-      operationId: createPayment
-      tags: [orders]
-      summary: Create Razorpay payment order
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Razorpay order
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PaymentOrder"
-
-  /orders/{id}/payment/verify:
-    post:
-      operationId: verifyPayment
-      tags: [orders]
-      summary: Verify Razorpay payment
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PaymentVerification"
-      responses:
-        "200":
-          description: Payment verified
           content:
             application/json:
               schema:
@@ -821,6 +797,19 @@ paths:
                   $ref: "#/components/schemas/Order"
 
   /sellers/profile:
+    get:
+      operationId: getSellerProfile
+      tags: [sellers]
+      summary: Get the logged-in seller's own profile
+      responses:
+        "200":
+          description: Seller profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Seller"
+        "404":
+          description: Seller profile not found
     patch:
       operationId: updateSellerProfile
       tags: [sellers]
@@ -905,6 +894,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+
+  /admin/sellers:
+    get:
+      operationId: adminListSellers
+      tags: [admin]
+      summary: List sellers, optionally filtered by status (admin only)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, approved, rejected, suspended]
+      responses:
+        "200":
+          description: Sellers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Seller"
 
   /admin/sellers/pending:
     get:
@@ -1061,6 +1072,7 @@ components:
           type: boolean
         role:
           type: string
+          enum: [buyer, seller, admin]
 
     # ADDRESS
     Address:
@@ -1403,6 +1415,8 @@ components:
           type: number
         deliveryFee:
           type: number
+        platformFee:
+          type: number
         total:
           type: number
 
@@ -1466,8 +1480,6 @@ components:
           enum: [pending, paid, failed, refunded]
         paymentMethod:
           type: ["string", "null"]
-        razorpayOrderId:
-          type: ["string", "null"]
         items:
           type: array
           items:
@@ -1526,7 +1538,8 @@ components:
           type: integer
         paymentMethod:
           type: string
-          enum: [razorpay, cod]
+          description: Cash on delivery is the only payment method (COD-only by design).
+          enum: [cod]
         notes:
           type: string
 
@@ -1540,32 +1553,17 @@ components:
         eta:
           type: string
 
-    # PAYMENT
-    PaymentOrder:
-      type: object
-      required: [razorpayOrderId, amount, currency, keyId]
-      properties:
-        razorpayOrderId:
-          type: string
-        amount:
-          type: integer
-        currency:
-          type: string
-        keyId:
-          type: string
-
-    PaymentVerification:
-      type: object
-      required: [razorpayOrderId, razorpayPaymentId, razorpaySignature]
-      properties:
-        razorpayOrderId:
-          type: string
-        razorpayPaymentId:
-          type: string
-        razorpaySignature:
-          type: string
-
     # REVIEW
+    ReviewEligibility:
+      type: object
+      required: [canReview]
+      properties:
+        canReview:
+          type: boolean
+        reason:
+          type: ["string", "null"]
+          enum: [not_buyer, no_delivered_order, already_reviewed, null]
+
     Review:
       type: object
       required: [id, productId, userId, rating, createdAt]

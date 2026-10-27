@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProductImage } from "@/components/ProductImage";
 
 const QUICK_SUGGESTIONS = [
   "Spinach", "Tomato", "Carrot", "Broccoli", "Coriander",
@@ -234,11 +235,12 @@ export default function SearchPage() {
                     className="group relative bg-white rounded-2xl overflow-hidden border border-border/40 hover:border-primary/30 hover:shadow-md transition-all"
                   >
                     <Link href={`/product/${product.id}`}>
-                      <div className="aspect-square overflow-hidden bg-muted/30">
-                        <img
-                          src={product.images?.[0] ?? "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400"}
+                      <div className="aspect-square overflow-hidden bg-product-bg">
+                        <ProductImage
+                          src={product.images?.[0]}
                           alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="w-full"
+                          imgClassName="group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
                     </Link>

@@ -1,49 +1,76 @@
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense, type ComponentType } from "react";
+import { Loader2 } from "lucide-react";
 import NotFound from "@/pages/not-found";
 import AppLoader from "@/components/AppLoader";
+import { handleSessionExpiry, isUnauthorized } from "@/lib/session";
 
 import BuyerLayout from "@/layouts/BuyerLayout";
 import SellerLayout from "@/layouts/SellerLayout";
 import AdminLayout from "@/layouts/AdminLayout";
 
-import Home from "@/pages/Home";
-import Login from "@/pages/Login";
-import Signup from "@/pages/Signup";
-import ProductDetail from "@/pages/ProductDetail";
-import CategoryBrowse from "@/pages/CategoryBrowse";
-import Cart from "@/pages/Cart";
-import Checkout from "@/pages/Checkout";
-import Orders from "@/pages/Orders";
-import OrderDetail from "@/pages/OrderDetail";
-import Profile from "@/pages/Profile";
-import Wishlist from "@/pages/Wishlist";
-import SearchPage from "@/pages/Search";
+// M9: route pages are code-split; each loads on first visit inside its layout.
+function lazyPage(factory: () => Promise<{ default: ComponentType }>) {
+  const Page = lazy(factory);
+  return function LazyPage() {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Page />
+      </Suspense>
+    );
+  };
+}
 
-import SellerDashboard from "@/pages/seller/Dashboard";
-import SellerProducts from "@/pages/seller/Products";
-import SellerAddProduct from "@/pages/seller/AddProduct";
-import SellerOrders from "@/pages/seller/Orders";
-import SellerAnalytics from "@/pages/seller/Analytics";
-import SellerSettings from "@/pages/seller/Settings";
+function PageLoading() {
+  return (
+    <div className="flex justify-center py-24" role="status" aria-label="Loading">
+      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+    </div>
+  );
+}
 
-import AdminDashboard from "@/pages/admin/Dashboard";
-import AdminUsers from "@/pages/admin/Users";
-import AdminSellers from "@/pages/admin/Sellers";
-import AdminOrders from "@/pages/admin/Orders";
+const Home = lazyPage(() => import("@/pages/Home"));
+const Login = lazyPage(() => import("@/pages/Login"));
+const Signup = lazyPage(() => import("@/pages/Signup"));
+const ProductDetail = lazyPage(() => import("@/pages/ProductDetail"));
+const CategoryBrowse = lazyPage(() => import("@/pages/CategoryBrowse"));
+const Cart = lazyPage(() => import("@/pages/Cart"));
+const Checkout = lazyPage(() => import("@/pages/Checkout"));
+const Orders = lazyPage(() => import("@/pages/Orders"));
+const OrderDetail = lazyPage(() => import("@/pages/OrderDetail"));
+const Profile = lazyPage(() => import("@/pages/Profile"));
+const Wishlist = lazyPage(() => import("@/pages/Wishlist"));
+const Credits = lazyPage(() => import("@/pages/Credits"));
+const SearchPage = lazyPage(() => import("@/pages/Search"));
+
+const SellerDashboard = lazyPage(() => import("@/pages/seller/Dashboard"));
+const SellerProducts = lazyPage(() => import("@/pages/seller/Products"));
+const SellerAddProduct = lazyPage(() => import("@/pages/seller/AddProduct"));
+const SellerOrders = lazyPage(() => import("@/pages/seller/Orders"));
+const SellerAnalytics = lazyPage(() => import("@/pages/seller/Analytics"));
+const SellerSettings = lazyPage(() => import("@/pages/seller/Settings"));
+
+const AdminDashboard = lazyPage(() => import("@/pages/admin/Dashboard"));
+const AdminUsers = lazyPage(() => import("@/pages/admin/Users"));
+const AdminSellers = lazyPage(() => import("@/pages/admin/Sellers"));
+const AdminOrders = lazyPage(() => import("@/pages/admin/Orders"));
+const AdminProducts = lazyPage(() => import("@/pages/admin/Products"));
 
 // Inject token into all API calls automatically
 setAuthTokenGetter(() => useAuthStore.getState().token);
 
-const queryClient = new QueryClient({
+const queryClient: QueryClient = new QueryClient({
+  // M7: any 401 from a request made with a session token logs the user out.
+  queryCache: new QueryCache({ onError: (error) => handleSessionExpiry(error, queryClient) }),
+  mutationCache: new MutationCache({ onError: (error) => handleSessionExpiry(error, queryClient) }),
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: (failureCount, error) => !isUnauthorized(error) && failureCount < 1,
       refetchOnWindowFocus: false,
     },
   },
@@ -57,18 +84,15 @@ function ProtectedRoute({
   role?: string | string[];
 }) {
   const { user } = useAuthStore();
-  const [, setLocation] = useLocation();
 
   if (!user) {
-    setLocation("/login");
-    return null;
+    return <Redirect to="/login" />;
   }
 
   if (role) {
     const allowed = Array.isArray(role) ? role : [role];
     if (!allowed.includes(user.role ?? "")) {
-      setLocation("/");
-      return null;
+      return <Redirect to="/" />;
     }
   }
 
@@ -154,6 +178,12 @@ function Router() {
         </BuyerLayout>
       </Route>
 
+      <Route path="/credits">
+        <BuyerLayout>
+          <Credits />
+        </BuyerLayout>
+      </Route>
+
       <Route path="/wishlist">
         <BuyerLayout>
           <ProtectedRoute role="buyer">
@@ -181,6 +211,14 @@ function Router() {
 
       <Route path="/seller/add-product">
         <ProtectedRoute role="seller">
+          <SellerLayout>
+            <SellerAddProduct />
+          </SellerLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/seller/products/:id/edit">
+        <ProtectedRoute role={["seller", "admin"]}>
           <SellerLayout>
             <SellerAddProduct />
           </SellerLayout>
@@ -232,6 +270,22 @@ function Router() {
         <ProtectedRoute role="admin">
           <AdminLayout>
             <AdminSellers />
+          </AdminLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/products">
+        <ProtectedRoute role="admin">
+          <AdminLayout>
+            <AdminProducts />
+          </AdminLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/products/:id/edit">
+        <ProtectedRoute role="admin">
+          <AdminLayout>
+            <SellerAddProduct />
           </AdminLayout>
         </ProtectedRoute>
       </Route>

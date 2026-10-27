@@ -369,6 +369,19 @@ export const CreateReviewBody = zod.object({
 
 
 /**
+ * @summary Whether the signed-in user may review this product (only checks the caller's own orders and reviews)
+ */
+export const GetReviewEligibilityParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetReviewEligibilityResponse = zod.object({
+  "canReview": zod.boolean(),
+  "reason": zod.union([zod.literal('not_buyer'),zod.literal('no_delivered_order'),zod.literal('already_reviewed'),zod.literal(null)]).nullish()
+})
+
+
+/**
  * @summary Get user's cart
  */
 export const GetCartResponse = zod.object({
@@ -389,6 +402,7 @@ export const GetCartResponse = zod.object({
   "updatedAt": zod.coerce.date(),
   "subtotal": zod.number().optional(),
   "deliveryFee": zod.number().optional(),
+  "platformFee": zod.number().optional(),
   "total": zod.number().optional()
 })
 
@@ -419,6 +433,7 @@ export const AddToCartResponse = zod.object({
   "updatedAt": zod.coerce.date(),
   "subtotal": zod.number().optional(),
   "deliveryFee": zod.number().optional(),
+  "platformFee": zod.number().optional(),
   "total": zod.number().optional()
 })
 
@@ -452,6 +467,7 @@ export const UpdateCartItemResponse = zod.object({
   "updatedAt": zod.coerce.date(),
   "subtotal": zod.number().optional(),
   "deliveryFee": zod.number().optional(),
+  "platformFee": zod.number().optional(),
   "total": zod.number().optional()
 })
 
@@ -481,6 +497,7 @@ export const RemoveFromCartResponse = zod.object({
   "updatedAt": zod.coerce.date(),
   "subtotal": zod.number().optional(),
   "deliveryFee": zod.number().optional(),
+  "platformFee": zod.number().optional(),
   "total": zod.number().optional()
 })
 
@@ -501,7 +518,6 @@ export const ListOrdersResponseItem = zod.object({
   "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
   "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
   "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "productId": zod.number(),
@@ -532,7 +548,7 @@ export const ListOrdersResponse = zod.array(ListOrdersResponseItem)
  */
 export const CreateOrderBody = zod.object({
   "addressId": zod.number(),
-  "paymentMethod": zod.enum(['razorpay', 'cod']),
+  "paymentMethod": zod.enum(['cod']).describe('Cash on delivery is the only payment method (COD-only by design).'),
   "notes": zod.string().optional()
 })
 
@@ -551,7 +567,6 @@ export const GetOrderResponse = zod.object({
   "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
   "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
   "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "productId": zod.number(),
@@ -595,67 +610,6 @@ export const UpdateOrderStatusResponse = zod.object({
   "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
   "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
   "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
-  "items": zod.array(zod.object({
-  "id": zod.number(),
-  "productId": zod.number(),
-  "quantity": zod.number(),
-  "price": zod.number(),
-  "productName": zod.string().nullish(),
-  "productImage": zod.string().nullish(),
-  "productUnit": zod.string().nullish()
-})).optional(),
-  "addressId": zod.number().nullish(),
-  "addressSnapshot": zod.string().nullish(),
-  "subtotal": zod.number().optional(),
-  "deliveryFee": zod.number().optional(),
-  "platformFee": zod.number().optional(),
-  "total": zod.number(),
-  "eta": zod.string().nullish(),
-  "notes": zod.string().nullish(),
-  "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date().optional(),
-  "sellerName": zod.string().nullish(),
-  "buyerName": zod.string().nullish()
-})
-
-
-/**
- * @summary Create Razorpay payment order
- */
-export const CreatePaymentParams = zod.object({
-  "id": zod.coerce.number()
-})
-
-export const CreatePaymentResponse = zod.object({
-  "razorpayOrderId": zod.string(),
-  "amount": zod.number(),
-  "currency": zod.string(),
-  "keyId": zod.string()
-})
-
-
-/**
- * @summary Verify Razorpay payment
- */
-export const VerifyPaymentParams = zod.object({
-  "id": zod.coerce.number()
-})
-
-export const VerifyPaymentBody = zod.object({
-  "razorpayOrderId": zod.string(),
-  "razorpayPaymentId": zod.string(),
-  "razorpaySignature": zod.string()
-})
-
-export const VerifyPaymentResponse = zod.object({
-  "id": zod.number(),
-  "userId": zod.number(),
-  "sellerId": zod.number().nullish(),
-  "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
-  "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
-  "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "productId": zod.number(),
@@ -931,7 +885,6 @@ export const GetSellerOrdersResponseItem = zod.object({
   "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
   "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
   "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "productId": zod.number(),
@@ -955,6 +908,30 @@ export const GetSellerOrdersResponseItem = zod.object({
   "buyerName": zod.string().nullish()
 })
 export const GetSellerOrdersResponse = zod.array(GetSellerOrdersResponseItem)
+
+
+/**
+ * @summary Get the logged-in seller's own profile
+ */
+export const GetSellerProfileResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "storeName": zod.string(),
+  "description": zod.string().nullish(),
+  "logo": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish(),
+  "deliveryRadius": zod.number().nullish(),
+  "rating": zod.number().nullish(),
+  "totalOrders": zod.number().optional(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "createdAt": zod.coerce.date(),
+  "ownerName": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "isVerified": zod.boolean().optional()
+})
 
 
 /**
@@ -1045,7 +1022,7 @@ export const AdminUpdateUserParams = zod.object({
 
 export const AdminUpdateUserBody = zod.object({
   "isActive": zod.boolean().optional(),
-  "role": zod.string().optional()
+  "role": zod.enum(['buyer', 'seller', 'admin']).optional()
 })
 
 export const AdminUpdateUserResponse = zod.object({
@@ -1059,6 +1036,35 @@ export const AdminUpdateUserResponse = zod.object({
   "coins": zod.number().optional(),
   "createdAt": zod.coerce.date()
 })
+
+
+/**
+ * @summary List sellers, optionally filtered by status (admin only)
+ */
+export const AdminListSellersQueryParams = zod.object({
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']).optional()
+})
+
+export const AdminListSellersResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "storeName": zod.string(),
+  "description": zod.string().nullish(),
+  "logo": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish(),
+  "deliveryRadius": zod.number().nullish(),
+  "rating": zod.number().nullish(),
+  "totalOrders": zod.number().optional(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "createdAt": zod.coerce.date(),
+  "ownerName": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "isVerified": zod.boolean().optional()
+})
+export const AdminListSellersResponse = zod.array(AdminListSellersResponseItem)
 
 
 /**
@@ -1133,7 +1139,6 @@ export const AdminListOrdersResponseItem = zod.object({
   "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
   "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
   "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "productId": zod.number(),
