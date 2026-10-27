@@ -1809,9 +1809,9 @@ export const getCreateOrderUrl = () => {
 /**
  * @summary Place an order
  */
-export const createOrder = async (orderInput: OrderInput, options?: RequestInit): Promise<Order> => {
+export const createOrder = async (orderInput: OrderInput, options?: RequestInit): Promise<Order[]> => {
 
-  return customFetch<Order>(getCreateOrderUrl(),
+  return customFetch<Order[]>(getCreateOrderUrl(),
   {
     ...options,
     method: 'POST',

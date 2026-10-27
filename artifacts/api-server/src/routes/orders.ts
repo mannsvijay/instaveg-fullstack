@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, ordersTable, orderItemsTable, cartItemsTable, cartsTable, productsTable, addressesTable, usersTable, sellersTable } from "@workspace/db";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import { priceCart } from "../lib/pricing";
 import {
@@ -12,6 +12,9 @@ import crypto from "crypto";
 const router = Router();
 
 type AuthUser = { id: number; role: string };
+
+// Checkout problems the buyer can fix (empty cart, unavailable or out-of-stock items) -> 400.
+class CheckoutError extends Error {}
 
 // Forward-only, one step at a time. delivered and cancelled are final.
 const NEXT_STATUS: Record<string, string> = {
@@ -94,68 +97,105 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: "Online payment is not available; please choose Cash on Delivery" });
     return;
   }
-  const [cart] = await db.select().from(cartsTable).where(eq(cartsTable.userId, user.id));
-  if (!cart) {
-    res.status(400).json({ error: "Cart is empty" });
-    return;
-  }
-  const cartItems = await db.select({
-    productId: cartItemsTable.productId,
-    quantity: cartItemsTable.quantity,
-    price: productsTable.price,
-    name: productsTable.name,
-    images: productsTable.images,
-    unit: productsTable.unit,
-    sellerId: productsTable.sellerId,
-  }).from(cartItemsTable)
-    .leftJoin(productsTable, eq(cartItemsTable.productId, productsTable.id))
-    .where(eq(cartItemsTable.cartId, cart.id));
-  if (cartItems.length === 0) {
-    res.status(400).json({ error: "Cart is empty" });
-    return;
-  }
-
   const [address] = await db.select().from(addressesTable)
     .where(and(eq(addressesTable.id, addressId), eq(addressesTable.userId, user.id)));
   if (!address) {
     res.status(400).json({ error: "Address not found" });
     return;
   }
-  const lines = cartItems.map((item) => ({ ...item, price: item.price ?? 0 }));
-  const { subtotal, deliveryFee, platformFee, total } = priceCart(lines);
-  const firstSellerId = cartItems[0]?.sellerId ?? null;
-  const [order] = await db.insert(ordersTable).values({
-    userId: user.id,
-    sellerId: firstSellerId,
-    status: "pending",
-    paymentStatus: "pending",
-    paymentMethod,
-    addressId,
-    addressSnapshot: address ? JSON.stringify(address) : null,
-    subtotal,
-    deliveryFee,
-    platformFee,
-    total,
-    notes,
-  }).returning();
 
-  await db.insert(orderItemsTable).values(lines.map((item) => ({
-    orderId: order.id,
-    productId: item.productId,
-    quantity: item.quantity,
-    price: item.price,
-    productName: item.name ?? null,
-    productImage: Array.isArray(item.images) ? (item.images[0] ?? null) : null,
-    productUnit: item.unit ?? null,
-  })));
-  if (firstSellerId) {
-    const [seller] = await db.select({ totalOrders: sellersTable.totalOrders }).from(sellersTable).where(eq(sellersTable.id, firstSellerId));
-    if (seller) {
-      await db.update(sellersTable).set({ totalOrders: (seller.totalOrders ?? 0) + 1 }).where(eq(sellersTable.id, firstSellerId));
+  let orders: (typeof ordersTable.$inferSelect)[];
+  try {
+    // Whole checkout is atomic (M2): any failure rolls back every write.
+    orders = await db.transaction(async (tx) => {
+      const [cart] = await tx.select().from(cartsTable).where(eq(cartsTable.userId, user.id));
+      const cartLines = cart
+        ? await tx.select({ productId: cartItemsTable.productId, quantity: cartItemsTable.quantity })
+          .from(cartItemsTable).where(eq(cartItemsTable.cartId, cart.id))
+        : [];
+      if (!cart || cartLines.length === 0) throw new CheckoutError("Cart is empty");
+
+      // Lock the products (in id order) so stock and price can't change underneath us.
+      const products = await tx.select({
+        id: productsTable.id, name: productsTable.name, price: productsTable.price, stock: productsTable.stock,
+        images: productsTable.images, unit: productsTable.unit, sellerId: productsTable.sellerId,
+        sellerStatus: sellersTable.status,
+      }).from(productsTable)
+        .innerJoin(sellersTable, eq(productsTable.sellerId, sellersTable.id))
+        .where(inArray(productsTable.id, cartLines.map((line) => line.productId)))
+        .orderBy(productsTable.id)
+        .for("update", { of: productsTable });
+      const productById = new Map(products.map((product) => [product.id, product]));
+      const unavailable = cartLines.filter((line) => productById.get(line.productId)?.sellerStatus !== "approved");
+      if (unavailable.length > 0) {
+        throw new CheckoutError("Some items in your cart are no longer available; please remove them and try again");
+      }
+
+      // Current product price, never the price stored in the cart (H8).
+      const lines = cartLines
+        .map((line) => ({ ...line, product: productById.get(line.productId)!, price: productById.get(line.productId)!.price }))
+        .sort((a, b) => a.productId - b.productId);
+      const cartPrice = priceCart(lines);
+
+      // One order per seller (H7). Fees are charged once, on the first order,
+      // so the order totals add up to the cart total (H10).
+      const sellerIds = [...new Set(lines.map((line) => line.product.sellerId))].sort((a, b) => a - b);
+      const created: (typeof ordersTable.$inferSelect)[] = [];
+      for (const [index, sellerId] of sellerIds.entries()) {
+        const sellerLines = lines.filter((line) => line.product.sellerId === sellerId);
+        const { subtotal } = priceCart(sellerLines);
+        const deliveryFee = index === 0 ? cartPrice.deliveryFee : 0;
+        const platformFee = index === 0 ? cartPrice.platformFee : 0;
+        const [order] = await tx.insert(ordersTable).values({
+          userId: user.id,
+          sellerId,
+          status: "pending",
+          paymentStatus: "pending",
+          paymentMethod,
+          addressId,
+          addressSnapshot: JSON.stringify(address),
+          subtotal,
+          deliveryFee,
+          platformFee,
+          total: Math.round((subtotal + deliveryFee + platformFee) * 100) / 100,
+          notes,
+        }).returning();
+        await tx.insert(orderItemsTable).values(sellerLines.map((line) => ({
+          orderId: order.id,
+          productId: line.productId,
+          quantity: line.quantity,
+          price: line.price,
+          productName: line.product.name,
+          productImage: line.product.images[0] ?? null,
+          productUnit: line.product.unit,
+        })));
+        await tx.update(sellersTable).set({ totalOrders: sql`${sellersTable.totalOrders} + 1` })
+          .where(eq(sellersTable.id, sellerId));
+        created.push(order);
+      }
+
+      // Decrement stock only if enough is left; otherwise roll everything back.
+      for (const line of lines) {
+        const [updated] = await tx.update(productsTable)
+          .set({ stock: sql`${productsTable.stock} - ${line.quantity}` })
+          .where(and(eq(productsTable.id, line.productId), gte(productsTable.stock, line.quantity)))
+          .returning({ id: productsTable.id });
+        if (!updated) {
+          throw new CheckoutError(`Only ${line.product.stock} left of ${line.product.name}; please update your cart`);
+        }
+      }
+
+      await tx.delete(cartItemsTable).where(eq(cartItemsTable.cartId, cart.id));
+      return created;
+    });
+  } catch (err) {
+    if (err instanceof CheckoutError) {
+      res.status(400).json({ error: err.message });
+      return;
     }
+    throw err;
   }
-  await db.delete(cartItemsTable).where(eq(cartItemsTable.cartId, cart.id));
-  res.status(201).json(await enrichOrder(order));
+  res.status(201).json(await Promise.all(orders.map(enrichOrder)));
 });
 
 router.get("/orders/:id", requireAuth, async (req, res): Promise<void> => {

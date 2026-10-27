@@ -4,8 +4,6 @@ import {
   useGetCart,
   useListAddresses,
   useCreateOrder,
-  useCreatePayment,
-  useVerifyPayment,
   getGetCartQueryKey,
   getListAddressesQueryKey,
 } from "@workspace/api-client-react";
@@ -16,23 +14,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MapPin, CreditCard, Wallet, CheckCircle, Loader2 } from "lucide-react";
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
-function loadRazorpay(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (window.Razorpay) { resolve(true); return; }
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
-
 export default function Checkout() {
   const { user } = useAuthStore();
   const [, setLocation] = useLocation();
@@ -40,9 +21,9 @@ export default function Checkout() {
   const qc = useQueryClient();
 
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "cod">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"cod">("cod");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [placedOrders, setPlacedOrders] = useState<any[] | null>(null);
 
   const { data: cartRaw } = useGetCart({ query: { queryKey: getGetCartQueryKey(), enabled: !!user } });
   const cart = cartRaw as any;
@@ -51,8 +32,6 @@ export default function Checkout() {
   const addresses = (addressesRaw as any[]) ?? [];
 
   const createOrderMutation = useCreateOrder();
-  const createPaymentMutation = useCreatePayment();
-  const verifyPaymentMutation = useVerifyPayment();
 
   const defaultAddress = addresses.find((a: any) => a.isDefault) ?? addresses[0];
   const activeAddress = selectedAddressId ?? defaultAddress?.id;
@@ -64,86 +43,52 @@ export default function Checkout() {
     }
     setLoading(true);
 
+    // COD only (C5). Checkout returns one order per seller (H7).
     createOrderMutation.mutate(
       { data: { addressId: activeAddress, paymentMethod, notes: "" } },
       {
-        onSuccess: async (orderRaw: any) => {
-          const order = orderRaw as any;
-
-          if (paymentMethod === "cod") {
-            qc.invalidateQueries({ queryKey: getGetCartQueryKey() });
-            setSuccess(true);
-            setLoading(false);
-            return;
-          }
-
-          // Razorpay flow
-          createPaymentMutation.mutate(
-            { id: order.id },
-            {
-              onSuccess: async (paymentData: any) => {
-                const loaded = await loadRazorpay();
-                if (!loaded) {
-                  toast({ title: "Payment gateway unavailable", variant: "destructive" });
-                  setLoading(false);
-                  return;
-                }
-
-                const options = {
-                  key: paymentData.keyId,
-                  amount: paymentData.amount,
-                  currency: paymentData.currency,
-                  order_id: paymentData.razorpayOrderId,
-                  name: "InstaVEG",
-                  description: `Order #${order.id}`,
-                  handler: (response: any) => {
-                    verifyPaymentMutation.mutate(
-                      {
-                        id: order.id,
-                        data: {
-                          razorpayOrderId: response.razorpay_order_id,
-                          razorpayPaymentId: response.razorpay_payment_id,
-                          razorpaySignature: response.razorpay_signature,
-                        },
-                      },
-                      {
-                        onSuccess: () => {
-                          qc.invalidateQueries({ queryKey: getGetCartQueryKey() });
-                          setSuccess(true);
-                          setLoading(false);
-                        },
-                      }
-                    );
-                  },
-                  modal: { ondismiss: () => setLoading(false) },
-                  theme: { color: "#31511E" },
-                };
-
-                const rzp = new window.Razorpay(options);
-                rzp.open();
-              },
-              onError: () => { setLoading(false); toast({ title: "Payment initiation failed", variant: "destructive" }); },
-            }
-          );
+        onSuccess: (orders) => {
+          qc.invalidateQueries({ queryKey: getGetCartQueryKey() });
+          setPlacedOrders(orders as any[]);
+          setLoading(false);
         },
-        onError: () => { setLoading(false); toast({ title: "Failed to place order", variant: "destructive" }); },
+        onError: (err) => {
+          setLoading(false);
+          const apiMessage = (err as { data?: { error?: unknown } }).data?.error;
+          toast({ title: "Failed to place order", description: typeof apiMessage === "string" ? apiMessage : undefined, variant: "destructive" });
+        },
       }
     );
   };
 
-  if (success) {
+  if (placedOrders) {
+    const paid = placedOrders.reduce((sum, order) => sum + (order.total ?? 0), 0);
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-sm"
+          className="text-center max-w-sm w-full"
         >
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold font-serif mb-2">Order Placed!</h2>
-          <p className="text-muted-foreground mb-8">Your fresh vegetables are on their way. Expected delivery in 30 minutes.</p>
+          <h2 className="text-2xl font-bold font-serif mb-2">{placedOrders.length > 1 ? `${placedOrders.length} Orders Placed!` : "Order Placed!"}</h2>
+          <p className="text-muted-foreground mb-6">
+            {placedOrders.length > 1 ? "Your items come from different farms, so each one sends its own order." : "Your fresh vegetables are on their way."}
+          </p>
+          <div className="bg-white/70 rounded-2xl border border-border/30 p-4 mb-8 text-sm text-left space-y-2">
+            {placedOrders.map((order) => (
+              <div key={order.id} className="flex justify-between gap-3">
+                <span className="text-muted-foreground truncate">#{order.id} · {order.sellerName ?? "Seller"}</span>
+                <span>₹{Number(order.total).toFixed(0)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between font-bold border-t border-border/20 pt-2">
+              <span>Total (Cash on Delivery)</span>
+              <span className="text-primary">₹{paid.toFixed(0)}</span>
+            </div>
+          </div>
           <div className="flex flex-col gap-3">
             <Button onClick={() => setLocation("/orders")} className="rounded-xl">Track Orders</Button>
             <Button variant="outline" onClick={() => setLocation("/")} className="rounded-xl">Continue Shopping</Button>

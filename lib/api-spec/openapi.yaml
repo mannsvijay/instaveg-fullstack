@@ -490,11 +490,13 @@ paths:
               $ref: "#/components/schemas/OrderInput"
       responses:
         "201":
-          description: Order placed
+          description: Orders placed, one per seller
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
 
   /orders/{id}:
     get:
