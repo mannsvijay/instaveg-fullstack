@@ -821,6 +821,19 @@ paths:
                   $ref: "#/components/schemas/Order"
 
   /sellers/profile:
+    get:
+      operationId: getSellerProfile
+      tags: [sellers]
+      summary: Get the logged-in seller's own profile
+      responses:
+        "200":
+          description: Seller profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Seller"
+        "404":
+          description: Seller profile not found
     patch:
       operationId: updateSellerProfile
       tags: [sellers]

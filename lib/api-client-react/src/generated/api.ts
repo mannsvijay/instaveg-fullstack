@@ -3137,6 +3137,83 @@ export function useGetSellerOrders<TData = Awaited<ReturnType<typeof getSellerOr
 
 
 
+export const getGetSellerProfileUrl = () => {
+
+
+
+
+  return `/api/sellers/profile`
+}
+
+/**
+ * @summary Get the logged-in seller's own profile
+ */
+export const getSellerProfile = async ( options?: RequestInit): Promise<Seller> => {
+
+  return customFetch<Seller>(getGetSellerProfileUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSellerProfileQueryKey = () => {
+    return [
+    `/api/sellers/profile`
+    ] as const;
+    }
+
+
+export const getGetSellerProfileQueryOptions = <TData = Awaited<ReturnType<typeof getSellerProfile>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSellerProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSellerProfile>>> = ({ signal }) => getSellerProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSellerProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSellerProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getSellerProfile>>>
+export type GetSellerProfileQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the logged-in seller's own profile
+ */
+
+export function useGetSellerProfile<TData = Awaited<ReturnType<typeof getSellerProfile>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSellerProfileQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getUpdateSellerProfileUrl = () => {
 
 

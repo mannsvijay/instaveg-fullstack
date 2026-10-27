@@ -16,6 +16,16 @@ import {
 
 const router = Router();
 
+// Admin may change any product; a seller only products of their own sellers row.
+async function canManageProduct(user: { id: number; role: string }, productId: number): Promise<boolean> {
+  const [product] = await db.select({ sellerId: productsTable.sellerId }).from(productsTable)
+    .where(eq(productsTable.id, productId));
+  if (!product) return false;
+  if (user.role === "admin") return true;
+  const [seller] = await db.select({ id: sellersTable.id }).from(sellersTable).where(eq(sellersTable.userId, user.id));
+  return seller?.id === product.sellerId;
+}
+
 async function enrichProduct(product: typeof productsTable.$inferSelect) {
   const [seller] = await db.select({ storeName: sellersTable.storeName, city: sellersTable.city })
     .from(sellersTable).where(eq(sellersTable.id, product.sellerId));
@@ -106,6 +116,7 @@ router.get("/products/:id", async (req, res): Promise<void> => {
 });
 
 router.patch("/products/:id", requireAuth, requireRole("seller", "admin"), async (req, res): Promise<void> => {
+  const user = (req as typeof req & { user: { id: number; role: string } }).user;
   const params = UpdateProductParams.safeParse(req.params);
   const parsed = UpdateProductBody.safeParse(req.body);
   if (!params.success) {
@@ -114,6 +125,10 @@ router.patch("/products/:id", requireAuth, requireRole("seller", "admin"), async
   }
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (!(await canManageProduct(user, params.data.id))) {
+    res.status(404).json({ error: "Product not found" });
     return;
   }
   const [product] = await db.update(productsTable).set(parsed.data)
@@ -126,9 +141,14 @@ router.patch("/products/:id", requireAuth, requireRole("seller", "admin"), async
 });
 
 router.delete("/products/:id", requireAuth, requireRole("seller", "admin"), async (req, res): Promise<void> => {
+  const user = (req as typeof req & { user: { id: number; role: string } }).user;
   const parsed = DeleteProductParams.safeParse(req.params);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (!(await canManageProduct(user, parsed.data.id))) {
+    res.status(404).json({ error: "Product not found" });
     return;
   }
   await db.delete(productsTable).where(eq(productsTable.id, parsed.data.id));

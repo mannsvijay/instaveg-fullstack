@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useListProducts, useDeleteProduct, getListProductsQueryKey } from "@workspace/api-client-react";
+import { useListProducts, useDeleteProduct, getListProductsQueryKey, useGetSellerProfile, getGetSellerProfileQueryKey } from "@workspace/api-client-react";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Plus, Edit3, Trash2, Package, Leaf } from "lucide-react";
+import { Plus, Edit3, Trash2, Package, Leaf, AlertCircle } from "lucide-react";
 
 export default function SellerProducts() {
   const { user } = useAuthStore();
@@ -17,8 +17,12 @@ export default function SellerProducts() {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
 
-  const sellerProductParams = { page, limit: 20 };
-  const { data: productsData, isLoading } = useListProducts(sellerProductParams, { query: { queryKey: getListProductsQueryKey(sellerProductParams) } });
+  // Only this seller's products (C4): never list without a seller id.
+  const { data: sellerProfile, isLoading: profileLoading, isError: profileError } = useGetSellerProfile({ query: { queryKey: getGetSellerProfileQueryKey(), enabled: !!user, retry: false } });
+  const sellerId = sellerProfile?.id;
+  const sellerProductParams = { sellerId, page, limit: 20 };
+  const { data: productsData, isLoading: productsLoading } = useListProducts(sellerProductParams, { query: { queryKey: getListProductsQueryKey(sellerProductParams), enabled: !!sellerId } });
+  const isLoading = profileLoading || (!!sellerId && productsLoading);
   const products = (productsData as any)?.products ?? [];
 
   const deleteMutation = useDeleteProduct();
@@ -42,7 +46,12 @@ export default function SellerProducts() {
         </Link>
       </div>
 
-      {isLoading ? (
+      {profileError || (!profileLoading && !sellerId) ? (
+        <div className="text-center py-20">
+          <AlertCircle className="w-12 h-12 text-destructive/40 mx-auto mb-4" />
+          <p className="text-muted-foreground">Could not load your seller profile, so your products can't be shown.</p>
+        </div>
+      ) : isLoading ? (
         Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl mb-3" />)
       ) : products.length === 0 ? (
         <div className="text-center py-20">

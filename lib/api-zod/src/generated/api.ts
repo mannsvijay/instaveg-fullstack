@@ -958,6 +958,30 @@ export const GetSellerOrdersResponse = zod.array(GetSellerOrdersResponseItem)
 
 
 /**
+ * @summary Get the logged-in seller's own profile
+ */
+export const GetSellerProfileResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "storeName": zod.string(),
+  "description": zod.string().nullish(),
+  "logo": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish(),
+  "deliveryRadius": zod.number().nullish(),
+  "rating": zod.number().nullish(),
+  "totalOrders": zod.number().optional(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "createdAt": zod.coerce.date(),
+  "ownerName": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "isVerified": zod.boolean().optional()
+})
+
+
+/**
  * @summary Update seller profile
  */
 export const UpdateSellerProfileBody = zod.object({
