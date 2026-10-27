@@ -46,11 +46,20 @@ async function enrichOrder(order: typeof ordersTable.$inferSelect) {
 }
 
 router.get("/orders", requireAuth, async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number; role: string } }).user;
+  const user = (req as typeof req & { user: AuthUser }).user;
   const parsed = ListOrdersQueryParams.safeParse(req.query);
   const { status, page = 1, limit = 20 } = parsed.success ? parsed.data : {};
   const conditions = [];
-  if (user.role === "buyer") conditions.push(eq(ordersTable.userId, user.id));
+  if (user.role === "seller") {
+    const sellerId = await getSellerIdForUser(user.id);
+    if (sellerId === null) {
+      res.json([]);
+      return;
+    }
+    conditions.push(eq(ordersTable.sellerId, sellerId));
+  } else if (user.role !== "admin") {
+    conditions.push(eq(ordersTable.userId, user.id));
+  }
   if (status) conditions.push(eq(ordersTable.status, status));
   const where = conditions.length ? and(...conditions) : undefined;
   const rows = await db.select().from(ordersTable).where(where)
