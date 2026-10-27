@@ -65,6 +65,7 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | H6 | **Local dev on Windows/macOS is blocked** | `pnpm-workspace.yaml` `overrides` delete native binaries for every platform except linux-x64-gnu (esbuild, rollup, tailwind oxide, lightningcss). Also: no Vite `/api` proxy (Replit did it); API `dev` script uses POSIX `export` (fails in PowerShell); `PORT` required with no default | Remove platform-exclusion overrides (keep the `esbuild` pin and `@esbuild-kit` override); add Vite proxy; use `cross-env` or plain `node` script; default PORT 8080 |
 | H7 | **Multi-vendor orders are broken** | `routes/orders.ts:77` assigns the whole order to the first item's seller; other sellers never see their items. `order_items` has no `sellerId` | Split checkout into one order per seller (matches existing schema) |
 | H8 | **No quantity/stock/price validation** | Zod bodies have no `min`/`int`. `POST /cart/items` with `quantity: -5` lowers quantity; fractional quantities accepted; stock never checked or decremented; negative `price`/`stock` accepted on products | Add server-side bounds; check stock at add-to-cart and checkout; decrement stock in a transaction |
+| H9 | **Seller product editing is not implemented** | `pages/seller/Products.tsx:82` Edit button links to `/seller/products/:id/edit`, but `App.tsx` has no such route and `pages/seller/AddProduct.tsx` has no edit mode | Add the route and an edit mode (load product, PATCH). Fix in Batch 3, after C4 |
 
 ### 🟡 MEDIUM
 
@@ -90,6 +91,7 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | L4 | `attached_assets/` (old pasted Replit prompts) and the `@assets` alias | root, `vite.config.ts` |
 | L5 | `artifacts/mockup-sandbox` workspace package (unused by app) | `artifacts/mockup-sandbox` |
 | L6 | ~13.7 MB of **unreferenced** images: 7 PNGs (1–2 MB each) in `public/images/` and 10 JPGs in `public/images/products/`; `IMAGES` constant unused | `public/images`, `src/lib/constants.ts` |
+| L7 | Category filter chips on the category page show a visible horizontal scrollbar: `scrollbar-hide` class is not defined anywhere (no plugin/CSS). Fix in Batch 6 | `pages/CategoryBrowse.tsx:59` |
 
 Note: the visible Replit badge on the live site is injected by Replit hosting. It disappears automatically once hosted on Vercel; the CSS hack should still be deleted.
 
@@ -116,10 +118,10 @@ Note: the visible Replit badge on the live site is injected by Replit hosting. I
 | 0 | **Safety net**: back up live Replit DB; create `fix/audit` branch; get local dev running | H6, manual steps |
 | 1 | Make the build green; reproducible seed with stable slugs | H1, H2 |
 | 2 | Lock down authorization | C1–C7 |
-| 3 | Business-logic correctness | H5, H7, H8, M1, M2, M6, M8 |
+| 3 | Business-logic correctness | H5, H7, H8, H9 (after C4), M1, M2, M6, M8 |
 | 4 | Product images: one mapping, hosted assets, fallback, verification script | H3, L6 |
 | 5 | Remove Replit branding/config; README rewrite; `.env.example` | L1–L5, M3 |
-| 6 | Frontend robustness + hardening | M4, M5, M7, M9 |
+| 6 | Frontend robustness + hardening | M4, M5, M7, M9, L7 |
 | 7 | Payments decision (real Razorpay test mode vs COD-only) | H4 |
 | 8 | Vercel + Neon config; preview deploy; verify; promote to production | Phase 5–7 |
 
