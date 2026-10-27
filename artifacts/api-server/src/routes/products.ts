@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { db, productsTable, sellersTable, categoriesTable, reviewsTable, usersTable } from "@workspace/db";
 import { eq, ilike, and, gte, lte, desc, sql } from "drizzle-orm";
-import { requireAuth, requireRole } from "../lib/auth";
+import { requireAuth, requireRole, optionalUser } from "../lib/auth";
+import { approvedSellerProducts, getSellerForUser, productVisibility } from "../lib/product-visibility";
 import { uniqueProductSlug } from "../lib/slug";
 import {
   ListProductsQueryParams,
@@ -22,9 +23,11 @@ async function canManageProduct(user: { id: number; role: string }, productId: n
     .where(eq(productsTable.id, productId));
   if (!product) return false;
   if (user.role === "admin") return true;
-  const [seller] = await db.select({ id: sellersTable.id }).from(sellersTable).where(eq(sellersTable.userId, user.id));
+  const seller = await getSellerForUser(user.id);
   return seller?.id === product.sellerId;
 }
+
+const NOT_APPROVED = "Your seller account is awaiting approval";
 
 async function enrichProduct(product: typeof productsTable.$inferSelect) {
   const [seller] = await db.select({ storeName: sellersTable.storeName, city: sellersTable.city })
@@ -43,7 +46,7 @@ router.get("/products/trending", async (req, res): Promise<void> => {
   const parsed = GetTrendingProductsQueryParams.safeParse(req.query);
   const limit = parsed.success ? (parsed.data.limit ?? 10) : 10;
   const products = await db.select().from(productsTable)
-    .where(gte(productsTable.stock, 1))
+    .where(and(gte(productsTable.stock, 1), approvedSellerProducts()))
     .orderBy(desc(productsTable.orderCount)).limit(limit);
   res.json(await Promise.all(products.map(enrichProduct)));
 });
@@ -52,7 +55,7 @@ router.get("/products/fresh-picks", async (req, res): Promise<void> => {
   const parsed = GetFreshPicksQueryParams.safeParse(req.query);
   const limit = parsed.success ? (parsed.data.limit ?? 10) : 10;
   const products = await db.select().from(productsTable)
-    .where(and(eq(productsTable.isFresh, true), gte(productsTable.stock, 1)))
+    .where(and(eq(productsTable.isFresh, true), gte(productsTable.stock, 1), approvedSellerProducts()))
     .orderBy(desc(productsTable.createdAt)).limit(limit);
   res.json(await Promise.all(products.map(enrichProduct)));
 });
@@ -65,6 +68,8 @@ router.get("/products", async (req, res): Promise<void> => {
   }
   const { category, search, sellerId, page = 1, limit = 20, minPrice, maxPrice, inStock } = parsed.data;
   const conditions = [];
+  const visibility = await productVisibility(optionalUser(req));
+  if (visibility) conditions.push(visibility);
   if (search) conditions.push(ilike(productsTable.name, `%${search}%`));
   if (sellerId) conditions.push(eq(productsTable.sellerId, sellerId));
   if (minPrice !== undefined) conditions.push(gte(productsTable.price, minPrice));
@@ -85,7 +90,7 @@ router.get("/products", async (req, res): Promise<void> => {
 });
 
 router.post("/products", requireAuth, requireRole("seller", "admin"), async (req, res): Promise<void> => {
-  const user = (req as typeof req & { user: { id: number } }).user;
+  const user = (req as typeof req & { user: { id: number; role: string } }).user;
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -94,6 +99,10 @@ router.post("/products", requireAuth, requireRole("seller", "admin"), async (req
   const [seller] = await db.select().from(sellersTable).where(eq(sellersTable.userId, user.id));
   if (!seller) {
     res.status(403).json({ error: "Seller profile not found" });
+    return;
+  }
+  if (user.role !== "admin" && seller.status !== "approved") {
+    res.status(403).json({ error: NOT_APPROVED });
     return;
   }
   const slug = await uniqueProductSlug(parsed.data.name);
@@ -107,7 +116,8 @@ router.get("/products/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [product] = await db.select().from(productsTable).where(eq(productsTable.id, parsed.data.id));
+  const [product] = await db.select().from(productsTable)
+    .where(and(eq(productsTable.id, parsed.data.id), await productVisibility(optionalUser(req))));
   if (!product) {
     res.status(404).json({ error: "Product not found" });
     return;
@@ -129,6 +139,10 @@ router.patch("/products/:id", requireAuth, requireRole("seller", "admin"), async
   }
   if (!(await canManageProduct(user, params.data.id))) {
     res.status(404).json({ error: "Product not found" });
+    return;
+  }
+  if (user.role !== "admin" && (await getSellerForUser(user.id))?.status !== "approved") {
+    res.status(403).json({ error: NOT_APPROVED });
     return;
   }
   const [product] = await db.update(productsTable).set(parsed.data)

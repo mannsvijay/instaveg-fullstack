@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, cartsTable, cartItemsTable, productsTable, sellersTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
+import { approvedSellerProducts } from "../lib/product-visibility";
 import { AddToCartBody, UpdateCartItemBody, UpdateCartItemParams, RemoveFromCartParams } from "@workspace/api-zod";
 
 const router = Router();
@@ -64,7 +65,8 @@ router.post("/cart/items", requireAuth, async (req, res): Promise<void> => {
     return;
   }
   const { productId, quantity } = parsed.data;
-  const [product] = await db.select().from(productsTable).where(eq(productsTable.id, productId));
+  const [product] = await db.select().from(productsTable)
+    .where(and(eq(productsTable.id, productId), approvedSellerProducts()));
   if (!product) {
     res.status(404).json({ error: "Product not found" });
     return;

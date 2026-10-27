@@ -23,6 +23,12 @@ export function verifyToken(token: string): { id: number; email: string; role: s
   }
 }
 
+// For public routes that show more to signed-in callers; invalid tokens count as anonymous.
+export function optionalUser(req: Request): { id: number; email: string; role: string } | null {
+  const auth = req.headers.authorization;
+  return auth?.startsWith("Bearer ") ? verifyToken(auth.slice(7)) : null;
+}
+
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith("Bearer ")) {

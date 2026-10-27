@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { db, categoriesTable, productsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { requireAuth, requireRole } from "../lib/auth";
+import { approvedSellerProducts } from "../lib/product-visibility";
 import { CreateCategoryBody, GetCategoryParams } from "@workspace/api-zod";
 
 const router = Router();
@@ -10,7 +11,7 @@ router.get("/categories", async (_req, res): Promise<void> => {
   const rows = await db.select().from(categoriesTable).orderBy(categoriesTable.name);
   const withCount = await Promise.all(rows.map(async (cat) => {
     const [count] = await db.select({ count: sql<number>`count(*)::int` })
-      .from(productsTable).where(eq(productsTable.categoryId, cat.id));
+      .from(productsTable).where(and(eq(productsTable.categoryId, cat.id), approvedSellerProducts()));
     return { ...cat, productCount: count?.count ?? 0 };
   }));
   res.json(withCount);
@@ -38,7 +39,7 @@ router.get("/categories/:id", async (req, res): Promise<void> => {
     return;
   }
   const [count] = await db.select({ count: sql<number>`count(*)::int` })
-    .from(productsTable).where(eq(productsTable.categoryId, category.id));
+    .from(productsTable).where(and(eq(productsTable.categoryId, category.id), approvedSellerProducts()));
   res.json({ ...category, productCount: count?.count ?? 0 });
 });
 
