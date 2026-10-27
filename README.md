@@ -85,6 +85,8 @@ docs/            AUDIT.md, ENGINEERING_NOTES.md
    ```
    Open http://localhost:5173. The API listens on http://localhost:8080/api.
 
+   The frontend dev server only accepts connections from this machine. To open it from another device on your network (for example a phone), start it with `DEV_HOST=0.0.0.0` (PowerShell: `$env:DEV_HOST="0.0.0.0"; pnpm --filter @workspace/instaveg run dev`) and browse to your computer's IP address on port 5173.
+
 ## Demo accounts
 
 | Role | Email | Password |

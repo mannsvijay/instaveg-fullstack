@@ -28,7 +28,8 @@ The findings below are kept as originally recorded. This table tracks where each
 | M9 | Fixed (Batch 6) | Route pages lazy-loaded (main JS chunk 1,049,739 → 495,082 bytes); product lists use one joined query and category counts one grouped query, with identical responses |
 | M10 | Fixed (Batch 6) | Checkout adds each item's quantity to `orderCount` in the checkout transaction; cancelling subtracts it (never below 0) with the stock restore |
 | M11 | Fixed (Batch 6) | Review form on ProductDetail for buyers the new `GET /products/{id}/reviews/eligibility` endpoint allows (checks only the caller's own orders and reviews) |
-| M12, M13, M14 | Open (Batch 6) | |
+| M12 | Fixed (Batch 6) | Dev/preview servers bind to localhost with Vite's host check; `DEV_HOST=0.0.0.0` opts in to network access (host check stays on) |
+| M13, M14 | Open (Batch 6) | |
 | L1–L5 | Fixed (Batch 5) | Replit branding, plugins, config, assets and sandbox removed |
 | L6 | Fixed (Batch 4) | Unreferenced images removed |
 | L7, L9 | Open (Batch 6) | |
