@@ -199,8 +199,8 @@ export default function Checkout() {
         </h3>
         <div className="grid grid-cols-2 gap-3">
           {[
+            // COD-only (C5): Razorpay is hidden until real test-mode integration (H4).
             { value: "cod", label: "Cash on Delivery", icon: Wallet },
-            { value: "razorpay", label: "Razorpay", icon: CreditCard },
           ].map(({ value, label, icon: Icon }) => (
             <label
               key={value}

@@ -23,6 +23,13 @@ const NEXT_STATUS: Record<string, string> = {
 };
 const CANCELLABLE = ["pending", "confirmed"];
 
+// Razorpay is disabled unless both keys are configured (COD-only otherwise).
+function razorpayConfig(): { keyId: string; keySecret: string } | null {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  return keyId && keySecret ? { keyId, keySecret } : null;
+}
+
 // Sellers act through their sellers row, not their user id.
 async function getSellerIdForUser(userId: number): Promise<number | null> {
   const [seller] = await db.select({ id: sellersTable.id }).from(sellersTable).where(eq(sellersTable.userId, userId));
@@ -84,6 +91,10 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     return;
   }
   const { addressId, paymentMethod, notes } = parsed.data;
+  if (paymentMethod === "razorpay" && !razorpayConfig()) {
+    res.status(400).json({ error: "Online payment is not available; please choose Cash on Delivery" });
+    return;
+  }
   const [cart] = await db.select().from(cartsTable).where(eq(cartsTable.userId, user.id));
   if (!cart) {
     res.status(400).json({ error: "Cart is empty" });
@@ -203,14 +214,24 @@ router.patch("/orders/:id", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.post("/orders/:id/payment/create", requireAuth, async (req, res): Promise<void> => {
+  const config = razorpayConfig();
+  if (!config) {
+    res.status(503).json({ error: "Online payment is not available" });
+    return;
+  }
+  const user = (req as typeof req & { user: AuthUser }).user;
   const parsed = CreatePaymentParams.safeParse(req.params);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, parsed.data.id));
-  if (!order) {
+  if (!order || order.userId !== user.id) {
     res.status(404).json({ error: "Order not found" });
+    return;
+  }
+  if (order.paymentMethod !== "razorpay" || order.paymentStatus === "paid") {
+    res.status(400).json({ error: "Order is not awaiting online payment" });
     return;
   }
   const razorpayOrderId = `order_${Date.now()}_${order.id}`;
@@ -219,11 +240,17 @@ router.post("/orders/:id/payment/create", requireAuth, async (req, res): Promise
     razorpayOrderId,
     amount: Math.round(order.total * 100),
     currency: "INR",
-    keyId: process.env.RAZORPAY_KEY_ID ?? "rzp_test_demo",
+    keyId: config.keyId,
   });
 });
 
 router.post("/orders/:id/payment/verify", requireAuth, async (req, res): Promise<void> => {
+  const config = razorpayConfig();
+  if (!config) {
+    res.status(503).json({ error: "Online payment is not available" });
+    return;
+  }
+  const user = (req as typeof req & { user: AuthUser }).user;
   const params = VerifyPaymentParams.safeParse(req.params);
   const parsed = VerifyPaymentBody.safeParse(req.body);
   if (!params.success) {
@@ -235,16 +262,25 @@ router.post("/orders/:id/payment/verify", requireAuth, async (req, res): Promise
     return;
   }
   const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = parsed.data;
-  const expectedSig = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET ?? "demo_secret")
-    .update(`${razorpayOrderId}|${razorpayPaymentId}`).digest("hex");
-  const [order] = await db.update(ordersTable).set({
-    paymentStatus: expectedSig === razorpaySignature ? "paid" : "failed",
-    status: expectedSig === razorpaySignature ? "confirmed" : "pending",
-  }).where(eq(ordersTable.id, params.data.id)).returning();
-  if (!order) {
+  const [current] = await db.select().from(ordersTable).where(eq(ordersTable.id, params.data.id));
+  if (!current || current.userId !== user.id) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
+  // Signature must be over the razorpayOrderId we issued for this order.
+  if (!current.razorpayOrderId || razorpayOrderId !== current.razorpayOrderId) {
+    res.status(400).json({ error: "Payment verification failed" });
+    return;
+  }
+  const expected = Buffer.from(crypto.createHmac("sha256", config.keySecret)
+    .update(`${current.razorpayOrderId}|${razorpayPaymentId}`).digest("hex"));
+  const received = Buffer.from(razorpaySignature);
+  if (expected.length !== received.length || !crypto.timingSafeEqual(expected, received)) {
+    res.status(400).json({ error: "Payment verification failed" });
+    return;
+  }
+  const [order] = await db.update(ordersTable).set({ paymentStatus: "paid", status: "confirmed" })
+    .where(eq(ordersTable.id, current.id)).returning();
   res.json(await enrichOrder(order));
 });
 
