@@ -151,9 +151,15 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 pb-20 md:pb-0">
+      <main className="flex-1">
         {children}
       </main>
+
+      <footer className="border-t border-border/40 pt-4 pb-20 md:pb-4 text-center text-xs text-muted-foreground">
+        <a href="/images/CREDITS.md" target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
+          Image credits
+        </a>
+      </footer>
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-border/40 bg-background/90 backdrop-blur-md z-50">

@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Trash2, Plus, Minus, Leaf, ArrowRight, Tag } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { ProductImage } from "@/components/ProductImage";
 
 export default function Cart() {
   const { user } = useAuthStore();
@@ -113,13 +114,7 @@ export default function Cart() {
             <div className="divide-y divide-border/20">
               {sellerItems.map((item: any) => (
                 <motion.div key={item.productId} layout className="flex items-center gap-3 p-4">
-                  {item.productImage ? (
-                    <img src={item.productImage} alt={item.productName} className="w-16 h-16 rounded-xl object-cover bg-secondary" />
-                  ) : (
-                    <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center">
-                      <Leaf className="w-6 h-6 text-primary/30" />
-                    </div>
-                  )}
+                  <ProductImage src={item.productImage} alt={item.productName ?? "Product"} className="w-16 rounded-xl" />
                   <div className="flex-1 min-w-0">
                     <Link href={`/product/${item.productId}`}>
                       <p className="font-medium text-sm line-clamp-1">{item.productName}</p>

@@ -12,6 +12,7 @@ import { ArrowRight, Leaf, ShoppingCart, Star, TrendingUp, Zap } from "lucide-re
 import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { ProductImage } from "@/components/ProductImage";
 
 const stagger = {
   hidden: {},
@@ -196,10 +197,11 @@ function ProductCard({ product, onAddToCart }: { product: any; onAddToCart: (id:
     <div className="group relative bg-white rounded-2xl overflow-hidden border border-border/40 hover:border-primary/30 hover:shadow-md transition-all duration-200">
       <Link href={`/product/${product.id}`}>
         <div className="aspect-square overflow-hidden bg-muted/20 relative">
-          <img
-            src={product.images?.[0] ?? "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400"}
+          <ProductImage
+            src={product.images?.[0]}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full"
+            imgClassName="group-hover:scale-105 transition-transform duration-300"
           />
           {discount && (
             <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">

@@ -13,6 +13,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Search, Package, Edit3, Trash2 } from "lucide-react";
+import { ProductImage } from "@/components/ProductImage";
 
 const PAGE_SIZE = 20;
 
@@ -74,6 +75,7 @@ export default function AdminProducts() {
           <div className="divide-y divide-border/20">
             {products.map((p: any) => (
               <div key={p.id} className="px-5 py-3 flex items-center gap-4">
+                <ProductImage src={p.images?.[0]} alt={p.name} className="w-12 rounded-xl" />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm truncate">{p.name}</p>
                   <p className="text-xs text-muted-foreground truncate">

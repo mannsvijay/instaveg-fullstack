@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { Package, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ProductImage } from "@/components/ProductImage";
 
 const STATUS_COLOR: Record<string, string> = {
   pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
@@ -58,9 +59,11 @@ export default function Orders() {
             >
               <Link href={`/orders/${order.id}`}>
                 <div className="bg-white/70 backdrop-blur rounded-2xl border border-border/30 shadow-sm p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Package className="w-6 h-6 text-primary" />
-                  </div>
+                  <ProductImage
+                    src={order.items?.[0]?.productImage}
+                    alt={order.items?.[0]?.productName ?? `Order #${order.id}`}
+                    className="w-12 rounded-xl"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold text-sm">Order #{order.id}</span>

@@ -6,7 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, ShoppingCart, Leaf, Trash2 } from "lucide-react";
+import { Heart, ShoppingCart, Trash2 } from "lucide-react";
+import { ProductImage } from "@/components/ProductImage";
 
 export default function Wishlist() {
   const { user } = useAuthStore();
@@ -79,14 +80,8 @@ export default function Wishlist() {
                   className="bg-white/70 backdrop-blur rounded-2xl border border-border/30 shadow-sm overflow-hidden"
                 >
                   <Link href={`/product/${p.id}`}>
-                    <div className="h-40 bg-secondary/30 relative">
-                      {image ? (
-                        <img src={image} alt={p.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Leaf className="w-8 h-8 text-primary/30" />
-                        </div>
-                      )}
+                    <div className="relative">
+                      <ProductImage src={image} alt={p.name} className="w-full" />
                     </div>
                   </Link>
                   <div className="p-3">

@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Plus, Edit3, Trash2, Package, Leaf, AlertCircle } from "lucide-react";
+import { Plus, Edit3, Trash2, Package, AlertCircle } from "lucide-react";
+import { ProductImage } from "@/components/ProductImage";
 
 export default function SellerProducts() {
   const { user } = useAuthStore();
@@ -70,13 +71,7 @@ export default function SellerProducts() {
                 animate={{ opacity: 1 }}
                 className="bg-white/70 backdrop-blur rounded-2xl border border-border/30 p-4 flex items-center gap-4"
               >
-                {image ? (
-                  <img src={image} alt={p.name} className="w-16 h-16 rounded-xl object-cover bg-secondary flex-shrink-0" />
-                ) : (
-                  <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
-                    <Leaf className="w-6 h-6 text-primary/30" />
-                  </div>
-                )}
+                <ProductImage src={image} alt={p.name} className="w-16 rounded-xl" />
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-sm">{p.name}</h3>
                   <p className="text-xs text-muted-foreground">₹{p.price} / {p.unit}</p>

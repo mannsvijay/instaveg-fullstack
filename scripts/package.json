@@ -6,6 +6,8 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "seed": "tsx --env-file=../.env ./src/seed.ts",
+    "verify-images": "tsx ./src/verify-images.ts",
+    "image-review": "tsx ./src/image-review.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "sharp": "^0.35.5",
     "tsx": "catalog:"
   }
 }

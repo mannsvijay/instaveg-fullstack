@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Leaf, ShoppingCart, SlidersHorizontal, Star } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { ProductImage } from "@/components/ProductImage";
 
 export default function CategoryBrowse() {
   const { slug } = useParams<{ slug: string }>();
@@ -142,14 +143,8 @@ export default function CategoryBrowse() {
                 className="bg-white/70 backdrop-blur rounded-2xl overflow-hidden border border-border/30 shadow-sm flex flex-col"
               >
                 <Link href={`/product/${p.id}`}>
-                  <div className="relative h-40 bg-secondary/30">
-                    {image ? (
-                      <img src={image} alt={p.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Leaf className="w-8 h-8 text-primary/30" />
-                      </div>
-                    )}
+                  <div className="relative">
+                    <ProductImage src={image} alt={p.name} className="w-full" />
                     {p.isOrganic && (
                       <Badge className="absolute top-2 left-2 text-[10px] px-1.5 py-0.5 bg-primary">Organic</Badge>
                     )}

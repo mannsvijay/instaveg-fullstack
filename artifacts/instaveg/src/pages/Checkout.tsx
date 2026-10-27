@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MapPin, CreditCard, Wallet, CheckCircle, Loader2 } from "lucide-react";
+import { ProductImage } from "@/components/ProductImage";
 
 export default function Checkout() {
   const { user } = useAuthStore();
@@ -167,8 +168,9 @@ export default function Checkout() {
         <h3 className="font-semibold mb-3">Order Summary</h3>
         <div className="space-y-2">
           {items.map((item: any) => (
-            <div key={item.productId} className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{item.productName} × {item.quantity}</span>
+            <div key={item.productId} className="flex items-center justify-between gap-3 text-sm">
+              <ProductImage src={item.productImage} alt={item.productName ?? "Product"} className="w-10 rounded-lg" />
+              <span className="flex-1 min-w-0 truncate text-muted-foreground">{item.productName} × {item.quantity}</span>
               <span>₹{(item.price * item.quantity).toFixed(0)}</span>
             </div>
           ))}

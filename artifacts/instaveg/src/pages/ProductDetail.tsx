@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { ShoppingCart, Heart, Star, Leaf, Minus, Plus, ArrowLeft, CheckCircle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { ProductImage } from "@/components/ProductImage";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -96,14 +97,8 @@ export default function ProductDetail() {
       </div>
 
       {/* Image */}
-      <div className="relative bg-white/60 mx-4 mt-4 rounded-2xl overflow-hidden h-64 md:h-96">
-        {image ? (
-          <img src={image} alt={p.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-secondary">
-            <Leaf className="w-16 h-16 text-primary/30" />
-          </div>
-        )}
+      <div className="relative bg-white/60 mx-4 mt-4 rounded-2xl overflow-hidden max-w-md md:mx-auto">
+        <ProductImage src={image} alt={p.name} className="w-full" eager />
         {p.isOrganic && (
           <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">Organic</Badge>
         )}
