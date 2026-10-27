@@ -1,5 +1,5 @@
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useState, useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import AppLoader from "@/components/AppLoader";
+import { handleSessionExpiry, isUnauthorized } from "@/lib/session";
 
 import BuyerLayout from "@/layouts/BuyerLayout";
 import SellerLayout from "@/layouts/SellerLayout";
@@ -42,10 +43,13 @@ import AdminProducts from "@/pages/admin/Products";
 // Inject token into all API calls automatically
 setAuthTokenGetter(() => useAuthStore.getState().token);
 
-const queryClient = new QueryClient({
+const queryClient: QueryClient = new QueryClient({
+  // M7: any 401 from a request made with a session token logs the user out.
+  queryCache: new QueryCache({ onError: (error) => handleSessionExpiry(error, queryClient) }),
+  mutationCache: new MutationCache({ onError: (error) => handleSessionExpiry(error, queryClient) }),
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: (failureCount, error) => !isUnauthorized(error) && failureCount < 1,
       refetchOnWindowFocus: false,
     },
   },
@@ -59,18 +63,15 @@ function ProtectedRoute({
   role?: string | string[];
 }) {
   const { user } = useAuthStore();
-  const [, setLocation] = useLocation();
 
   if (!user) {
-    setLocation("/login");
-    return null;
+    return <Redirect to="/login" />;
   }
 
   if (role) {
     const allowed = Array.isArray(role) ? role : [role];
     if (!allowed.includes(user.role ?? "")) {
-      setLocation("/");
-      return null;
+      return <Redirect to="/" />;
     }
   }
 

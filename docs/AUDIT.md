@@ -24,7 +24,8 @@ The findings below are kept as originally recorded. This table tracks where each
 | M4 | Fixed (Batch 6) | JSON 404 and error handler (no stack traces in production), helmet, `CORS_ORIGINS` allow-list, auth rate limits. The limiter uses an in-memory store, so on serverless each instance counts separately; a shared store (e.g. Redis) would be needed for a global limit |
 | M5 | Resolved: obsolete (Batch 6) | The Razorpay verify flow it described was removed (client in Batch 3, API in H4); COD checkout has no payment step |
 | M6 | Resolved: obsolete (Batch 6) | Checkout is COD-only and runs as one transaction (M2); there is no online payment that could be abandoned after the cart is cleared |
-| M7, M9, M10, M11, M12, M13, M14 | Open (Batch 6) | |
+| M7 | Fixed (Batch 6) | A 401 on a request made with a session token (not wrong credentials at login/register) logs out, clears cached data, shows "Session expired, please log in again" and redirects to /login; `ProtectedRoute` uses `<Redirect>` |
+| M9, M10, M11, M12, M13, M14 | Open (Batch 6) | |
 | L1–L5 | Fixed (Batch 5) | Replit branding, plugins, config, assets and sandbox removed |
 | L6 | Fixed (Batch 4) | Unreferenced images removed |
 | L7, L9 | Open (Batch 6) | |
