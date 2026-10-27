@@ -32,18 +32,19 @@ if (process.env.API_URL) {
 
 export function startServer(env) {
   return spawn(process.execPath, [`--env-file=${rootEnv}`, serverEntry], {
-    env: { ...process.env, NODE_ENV: "test", ...env },
+    // Suites log in many times; a high auth limit keeps M4 rate limiting out of the way.
+    env: { ...process.env, NODE_ENV: "test", AUTH_RATE_LIMIT_MAX: "1000", ...env },
     stdio: ["ignore", "ignore", "pipe"],
   });
 }
 
 // Starts a local server on `port` unless API_URL is set. Returns { base, stop }.
-export async function startApi(port) {
+export async function startApi(port, env = {}) {
   let server = null;
   const base = process.env.API_URL ? process.env.API_URL.replace(/\/$/, "") : `http://127.0.0.1:${port}/api`;
   if (!process.env.API_URL) {
     assert.ok(fs.existsSync(serverEntry), "dist/index.mjs missing; run the build first");
-    server = startServer({ PORT: String(port) });
+    server = startServer({ PORT: String(port), ...env });
     let stderr = "";
     server.stderr.on("data", (chunk) => { stderr += chunk; });
     server.on("exit", (code) => { if (code) console.error(`# server exited with ${code}\n${stderr}`); });

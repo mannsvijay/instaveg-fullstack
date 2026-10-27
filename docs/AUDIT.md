@@ -21,7 +21,7 @@ The findings below are kept as originally recorded. This table tracks where each
 | H6 | Fixed (Batch 0) | Cross-platform local development |
 | M1, M2, M8 | Fixed (Batch 3) | Review rules, atomic checkout, role enum |
 | M3 | Fixed (Batch 5) | README rewritten, stale docs removed |
-| M4 | Open (Batch 6) | |
+| M4 | Fixed (Batch 6) | JSON 404 and error handler (no stack traces in production), helmet, `CORS_ORIGINS` allow-list, auth rate limits. The limiter uses an in-memory store, so on serverless each instance counts separately; a shared store (e.g. Redis) would be needed for a global limit |
 | M5 | Resolved: obsolete (Batch 6) | The Razorpay verify flow it described was removed (client in Batch 3, API in H4); COD checkout has no payment step |
 | M6 | Resolved: obsolete (Batch 6) | Checkout is COD-only and runs as one transaction (M2); there is no online payment that could be abandoned after the cart is cleared |
 | M7, M9, M10, M11, M12, M13, M14 | Open (Batch 6) | |
@@ -31,6 +31,7 @@ The findings below are kept as originally recorded. This table tracks where each
 | L8 | Fixed (Batch 3) | Full-width COD card |
 | L10 | Open | Replace with real Pexels/Pixabay/Unsplash photos |
 | L11 | Open | Drop `orders.razorpay_order_id` in a future migration |
+| M15 | Open (Batch 8) | Configure `trust proxy` for the Vercel deployment |
 
 ---
 
@@ -113,6 +114,7 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | M10 | `orderCount` is never incremented, so "Trending" ordering is meaningless. Batch 6 | `routes/products.ts` trending sorts by `orderCount`; checkout never updates it | Increment by item quantity at checkout; decrement on cancel |
 | M11 | No review form in the UI (M1 is server-side only). Batch 6 | `pages/ProductDetail.tsx` has no `useCreateReview` | Review form on ProductDetail for eligible buyers (delivered order containing the product) |
 | M12 | Vite dev/preview servers listen on all interfaces with no host check (`host: "0.0.0.0"`, `allowedHosts: true`, a Replit carry-over): other devices on the network can reach the dev server, and DNS-rebinding protection is off. Batch 6 | `artifacts/instaveg/vite.config.ts` `server` / `preview`; `--host 0.0.0.0` in the `dev` / `serve` scripts of `artifacts/instaveg/package.json` | Default to `localhost` and Vite's normal host check; allow opting in via an env var |
+| M15 | Behind a proxy (Vercel), Express sees the proxy's IP unless `trust proxy` is configured, so the per-IP auth rate limits (M4) would treat all clients as one. Batch 8 | `artifacts/api-server/src/app.ts` | Set `app.set("trust proxy", …)` for the deployment's proxy hops only, so clients cannot spoof `X-Forwarded-For` |
 
 ### 🟢 LOW — Replit branding & cleanup
 
