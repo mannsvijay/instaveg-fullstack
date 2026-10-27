@@ -105,9 +105,12 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const [address] = addressId
-    ? await db.select().from(addressesTable).where(eq(addressesTable.id, addressId))
-    : [null];
+  const [address] = await db.select().from(addressesTable)
+    .where(and(eq(addressesTable.id, addressId), eq(addressesTable.userId, user.id)));
+  if (!address) {
+    res.status(400).json({ error: "Address not found" });
+    return;
+  }
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price / 100) * item.quantity, 0);
   const firstSellerId = cartItems[0]?.sellerId ?? null;
   const [order] = await db.insert(ordersTable).values({
