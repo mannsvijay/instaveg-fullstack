@@ -48,3 +48,5 @@ Thumbs.db
 .cache/
 .local/
 .env
+# Vercel build output (Build Output API) and CLI project link
+.vercel/
