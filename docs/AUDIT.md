@@ -85,7 +85,7 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | M9 | 1.01 MB JS bundle; N+1 queries in `enrichProduct` / categories count | Build output; `routes/products.ts:18` | Route-level `lazy()`; joins |
 | M10 | `orderCount` is never incremented, so "Trending" ordering is meaningless. Batch 6 | `routes/products.ts` trending sorts by `orderCount`; checkout never updates it | Increment by item quantity at checkout; decrement on cancel |
 | M11 | No review form in the UI (M1 is server-side only). Batch 6 | `pages/ProductDetail.tsx` has no `useCreateReview` | Review form on ProductDetail for eligible buyers (delivered order containing the product) |
-| M12 | Vite dev/preview servers listen on all interfaces with no host check (`host: "0.0.0.0"`, `allowedHosts: true`, a Replit carry-over): other devices on the network can reach the dev server, and DNS-rebinding protection is off. Batch 6 | `artifacts/instaveg/vite.config.ts` `server` / `preview` | Default to `localhost` and Vite's normal host check; allow opting in via an env var |
+| M12 | Vite dev/preview servers listen on all interfaces with no host check (`host: "0.0.0.0"`, `allowedHosts: true`, a Replit carry-over): other devices on the network can reach the dev server, and DNS-rebinding protection is off. Batch 6 | `artifacts/instaveg/vite.config.ts` `server` / `preview`; `--host 0.0.0.0` in the `dev` / `serve` scripts of `artifacts/instaveg/package.json` | Default to `localhost` and Vite's normal host check; allow opting in via an env var |
 
 ### 🟢 LOW — Replit branding & cleanup
 
