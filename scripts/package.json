@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "hello": "tsx ./src/hello.ts",
     "seed": "tsx --env-file=../.env ./src/seed.ts",
     "verify-images": "tsx ./src/verify-images.ts",
     "image-review": "tsx ./src/image-review.ts",
