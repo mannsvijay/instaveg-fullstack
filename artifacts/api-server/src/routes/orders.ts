@@ -12,6 +12,23 @@ const router = Router();
 const PLATFORM_FEE = 5;
 const DELIVERY_FEE = 40;
 
+type AuthUser = { id: number; role: string };
+
+// Sellers act through their sellers row, not their user id.
+async function getSellerIdForUser(userId: number): Promise<number | null> {
+  const [seller] = await db.select({ id: sellersTable.id }).from(sellersTable).where(eq(sellersTable.userId, userId));
+  return seller?.id ?? null;
+}
+
+// Buyer who placed the order, the seller it belongs to, or admin.
+async function canAccessOrder(user: AuthUser, order: typeof ordersTable.$inferSelect): Promise<boolean> {
+  if (user.role === "admin" || order.userId === user.id) return true;
+  if (user.role === "seller" && order.sellerId !== null) {
+    return (await getSellerIdForUser(user.id)) === order.sellerId;
+  }
+  return false;
+}
+
 async function enrichOrder(order: typeof ordersTable.$inferSelect) {
   const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
   const [seller] = order.sellerId
@@ -110,13 +127,14 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.get("/orders/:id", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as typeof req & { user: AuthUser }).user;
   const parsed = GetOrderParams.safeParse(req.params);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, parsed.data.id));
-  if (!order) {
+  if (!order || !(await canAccessOrder(user, order))) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
