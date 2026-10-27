@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "seed": "tsx --env-file=../.env ./src/seed.ts",
+    "seed:production": "tsx ./src/seed-production.ts",
     "verify-images": "tsx ./src/verify-images.ts",
     "image-review": "tsx ./src/image-review.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
