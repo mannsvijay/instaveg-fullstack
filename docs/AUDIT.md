@@ -38,7 +38,7 @@ The findings below are kept as originally recorded. This table tracks where each
 | L7 | Fixed (Batch 6) | `scrollbar-hide` utility defined; the chips still scroll |
 | L9 | Fixed (Batch 6) | Non-approved sellers get 403 on product delete (admin exempt) |
 | L8 | Fixed (Batch 3) | Full-width COD card |
-| M16 | Open | Home categories row empty |
+| M16 | Fixed (post-launch) | Restored the categories query and the row of 8 category links with images on Home (removed by `e4ad4a4`) |
 | M17 | Open | Website security headers |
 | L12 | Open | Image 404 cached for 7 days |
 | L10 | Open | Replace with real Pexels/Pixabay/Unsplash photos |
