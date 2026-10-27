@@ -40,7 +40,7 @@ The findings below are kept as originally recorded. This table tracks where each
 | L8 | Fixed (Batch 3) | Full-width COD card |
 | L10 | Open | Replace with real Pexels/Pixabay/Unsplash photos |
 | L11 | Open | Drop `orders.razorpay_order_id` in a future migration |
-| M15 | Open (Batch 8) | Configure `trust proxy` for the Vercel deployment |
+| M15 | Fixed (Batch 8) | `trust proxy` = 1 only when `VERCEL=1`: Vercel overwrites `X-Forwarded-For` with the client IP, so `req.ip` (and the auth rate limit) is the real client; elsewhere `X-Forwarded-For` is ignored |
 
 ---
 

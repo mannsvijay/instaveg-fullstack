@@ -77,6 +77,35 @@ test("M4: failed logins are rate limited (429) after the configured limit", asyn
   assert.deepEqual(blocked.data, { error: "Too many attempts, please try again later" });
 });
 
+test("M15: without VERCEL, a spoofed X-Forwarded-For does not reset the login limit", async () => {
+  // The previous test exhausted this client's failed-login budget.
+  for (const ip of ["203.0.113.7", "198.51.100.23"]) {
+    const res = await fetch(`${base}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Forwarded-For": ip },
+      body: JSON.stringify({ email: "buyer@instaveg.com", password: "wrong-password" }),
+    });
+    assert.equal(res.status, 429, `X-Forwarded-For ${ip} must not get a fresh budget`);
+  }
+});
+
+test("M15: on Vercel (VERCEL=1) the limiter keys on the client IP Vercel puts in X-Forwarded-For", async () => {
+  const vercelLike = await startApi(PORT + 2, { AUTH_RATE_LIMIT_MAX: "2", VERCEL: "1" });
+  try {
+    const failedLogin = (ip) => fetch(`${vercelLike.base}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Forwarded-For": ip },
+      body: JSON.stringify({ email: "buyer@instaveg.com", password: "wrong-password" }),
+    });
+    assert.equal((await failedLogin("203.0.113.7")).status, 401);
+    assert.equal((await failedLogin("203.0.113.7")).status, 401);
+    assert.equal((await failedLogin("203.0.113.7")).status, 429, "same client IP is limited");
+    assert.equal((await failedLogin("198.51.100.23")).status, 401, "a different client IP has its own budget");
+  } finally {
+    await vercelLike.stop();
+  }
+});
+
 test("M4: register counts every attempt and is rate limited", async () => {
   // One attempt was used by the malformed-JSON test above.
   let status = 0;

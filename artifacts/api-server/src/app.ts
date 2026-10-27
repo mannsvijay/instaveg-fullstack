@@ -8,6 +8,16 @@ import { apiNotFound, corsOptions, errorHandler } from "./lib/http-hardening";
 
 const app: Express = express();
 
+// M15: on Vercel the request reaches Express through exactly one proxy that
+// overwrites X-Forwarded-For with the real client IP ("we currently overwrite
+// the X-Forwarded-For header and do not forward external IPs ... to prevent IP
+// spoofing", vercel.com/docs/headers/request-headers). Trusting one hop makes
+// req.ip (and so the auth rate limiter) that client IP. Elsewhere (local dev,
+// tests) nothing is trusted, so a client-sent X-Forwarded-For is ignored.
+if (process.env.VERCEL === "1") {
+  app.set("trust proxy", 1);
+}
+
 app.use(
   pinoHttp({
     logger,
