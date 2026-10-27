@@ -242,10 +242,22 @@ router.patch("/orders/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: `Cannot change order status from ${current.status} to ${next}` });
     return;
   }
-  const [order] = await db.update(ordersTable).set({
-    status: next,
-    ...(isStaff && parsed.data.eta ? { eta: parsed.data.eta } : {}),
-  }).where(and(eq(ordersTable.id, current.id), eq(ordersTable.status, current.status))).returning();
+  const order = await db.transaction(async (tx) => {
+    const [updated] = await tx.update(ordersTable).set({
+      status: next,
+      ...(isStaff && parsed.data.eta ? { eta: parsed.data.eta } : {}),
+    }).where(and(eq(ordersTable.id, current.id), eq(ordersTable.status, current.status))).returning();
+    // Cancelling puts the items back in stock, atomically with the status change (H12).
+    if (updated && next === "cancelled") {
+      const items = await tx.select({ productId: orderItemsTable.productId, quantity: orderItemsTable.quantity })
+        .from(orderItemsTable).where(eq(orderItemsTable.orderId, updated.id));
+      for (const item of items) {
+        await tx.update(productsTable).set({ stock: sql`${productsTable.stock} + ${item.quantity}` })
+          .where(eq(productsTable.id, item.productId));
+      }
+    }
+    return updated;
+  });
   if (!order) {
     res.status(409).json({ error: "Order status changed concurrently, please retry" });
     return;
