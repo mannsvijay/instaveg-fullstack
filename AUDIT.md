@@ -66,6 +66,8 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | H7 | **Multi-vendor orders are broken** | `routes/orders.ts:77` assigns the whole order to the first item's seller; other sellers never see their items. `order_items` has no `sellerId` | Split checkout into one order per seller (matches existing schema) |
 | H8 | **No quantity/stock/price validation** | Zod bodies have no `min`/`int`. `POST /cart/items` with `quantity: -5` lowers quantity; fractional quantities accepted; stock never checked or decremented; negative `price`/`stock` accepted on products | Add server-side bounds; check stock at add-to-cart and checkout; decrement stock in a transaction |
 | H9 | **Seller product editing is not implemented** | `pages/seller/Products.tsx:82` Edit button links to `/seller/products/:id/edit`, but `App.tsx` has no such route and `pages/seller/AddProduct.tsx` has no edit mode | Add the route and an edit mode (load product, PATCH). Fix in Batch 3, after C4 |
+| H10 | **Checkout total mismatch: buyer is charged more than displayed** | `routes/cart.ts` `buildCartResponse` returns `total = subtotal + deliveryFee`; `routes/orders.ts` saves `subtotal + DELIVERY_FEE + PLATFORM_FEE` (₹5 more). `Checkout.tsx`/`Cart.tsx` show the cart total and no platform fee line | One source of truth: cart response includes `platformFee` and a total that includes it; Cart/Checkout show a "Platform fee" line; order total equals cart total exactly; test asserts it. Batch 3, with H7/M2 |
+| H11 | **Admin Products page missing**: sidebar links to `/admin/products` but there is no route or page | `layouts/AdminLayout.tsx:11`; no `/admin/products` route in `App.tsx` | Admin Products page: all products with seller name and stock, search, Edit (reuse H9 form; admin may edit any product), Delete with confirm dialog. Batch 3, after H9 |
 
 ### 🟡 MEDIUM
 
@@ -92,6 +94,7 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | L5 | `artifacts/mockup-sandbox` workspace package (unused by app) | `artifacts/mockup-sandbox` |
 | L6 | ~13.7 MB of **unreferenced** images: 7 PNGs (1–2 MB each) in `public/images/` and 10 JPGs in `public/images/products/`; `IMAGES` constant unused | `public/images`, `src/lib/constants.ts` |
 | L7 | Category filter chips on the category page show a visible horizontal scrollbar: `scrollbar-hide` class is not defined anywhere (no plugin/CSS). Fix in Batch 6 | `pages/CategoryBrowse.tsx:59` |
+| L8 | Checkout payment method card sits in the left half of a two-column grid now that only COD remains; make the single option full width. Batch 3, in the H10 commit | `pages/Checkout.tsx:200` |
 
 Note: the visible Replit badge on the live site is injected by Replit hosting. It disappears automatically once hosted on Vercel; the CSS hack should still be deleted.
 
@@ -118,7 +121,7 @@ Note: the visible Replit badge on the live site is injected by Replit hosting. I
 | 0 | **Safety net**: back up live Replit DB; create `fix/audit` branch; get local dev running | H6, manual steps |
 | 1 | Make the build green; reproducible seed with stable slugs | H1, H2 |
 | 2 | Lock down authorization | C1–C7 |
-| 3 | Business-logic correctness | H5, H7, H8, H9 (after C4), M1, M2, M6, M8 |
+| 3 | Business-logic correctness | H5, H7, H8, H9 (after C4), H10, H11 (after H9), L8, M1, M2, M6, M8 |
 | 4 | Product images: one mapping, hosted assets, fallback, verification script | H3, L6 |
 | 5 | Remove Replit branding/config; README rewrite; `.env.example` | L1–L5, M3 |
 | 6 | Frontend robustness + hardening | M4, M5, M7, M9, L7 |
