@@ -33,6 +33,14 @@ export default function AdminUsers() {
           qc.invalidateQueries({ queryKey: getAdminListUsersQueryKey({}) });
           toast({ title: !isActive ? "User activated" : "User suspended" });
         },
+        onError: (err) => {
+          const apiMessage = (err as { data?: { error?: unknown } }).data?.error;
+          toast({
+            title: "Could not update user",
+            description: typeof apiMessage === "string" ? apiMessage : err instanceof Error ? err.message : undefined,
+            variant: "destructive",
+          });
+        },
       }
     );
   };

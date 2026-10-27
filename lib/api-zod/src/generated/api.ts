@@ -1069,7 +1069,7 @@ export const AdminUpdateUserParams = zod.object({
 
 export const AdminUpdateUserBody = zod.object({
   "isActive": zod.boolean().optional(),
-  "role": zod.string().optional()
+  "role": zod.enum(['buyer', 'seller', 'admin']).optional()
 })
 
 export const AdminUpdateUserResponse = zod.object({

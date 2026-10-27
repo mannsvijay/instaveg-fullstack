@@ -12,6 +12,7 @@ export * from './adminListOrdersParams';
 export * from './adminListUsersParams';
 export * from './adminStats';
 export * from './adminUserUpdate';
+export * from './adminUserUpdateRole';
 export * from './authResponse';
 export * from './cart';
 export * from './cartItem';

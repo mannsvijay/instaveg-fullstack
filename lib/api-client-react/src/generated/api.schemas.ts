@@ -67,9 +67,18 @@ export interface UserProfileUpdate {
   avatar?: string;
 }
 
+export type AdminUserUpdateRole = typeof AdminUserUpdateRole[keyof typeof AdminUserUpdateRole];
+
+
+export const AdminUserUpdateRole = {
+  buyer: 'buyer',
+  seller: 'seller',
+  admin: 'admin',
+} as const;
+
 export interface AdminUserUpdate {
   isActive?: boolean;
-  role?: string;
+  role?: AdminUserUpdateRole;
 }
 
 export interface Address {

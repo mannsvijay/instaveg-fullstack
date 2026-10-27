@@ -62,6 +62,7 @@ router.get("/admin/users", requireAuth, requireRole("admin"), async (req, res): 
 });
 
 router.patch("/admin/users/:id", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
+  const admin = (req as typeof req & { user: { id: number; role: string } }).user;
   const params = AdminUpdateUserParams.safeParse(req.params);
   const parsed = AdminUpdateUserBody.safeParse(req.body);
   if (!params.success) {
@@ -70,6 +71,12 @@ router.patch("/admin/users/:id", requireAuth, requireRole("admin"), async (req, 
   }
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  // An admin cannot lock themselves out (M8).
+  if (params.data.id === admin.id
+    && ((parsed.data.role !== undefined && parsed.data.role !== admin.role) || parsed.data.isActive === false)) {
+    res.status(400).json({ error: "You cannot change your own role or deactivate yourself" });
     return;
   }
   const [user] = await db.update(usersTable).set(parsed.data).where(eq(usersTable.id, params.data.id)).returning();

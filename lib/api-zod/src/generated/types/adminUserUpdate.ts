@@ -5,8 +5,9 @@
  * InstaVEG - Hyperlocal grocery marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminUserUpdateRole } from './adminUserUpdateRole';
 
 export interface AdminUserUpdate {
   isActive?: boolean;
-  role?: string;
+  role?: AdminUserUpdateRole;
 }

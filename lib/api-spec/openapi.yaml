@@ -1074,6 +1074,7 @@ components:
           type: boolean
         role:
           type: string
+          enum: [buyer, seller, admin]
 
     # ADDRESS
     Address:
