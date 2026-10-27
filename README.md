@@ -78,7 +78,7 @@ docs/            AUDIT.md, ENGINEERING_NOTES.md
    pnpm --filter @workspace/db run push
    pnpm --filter @workspace/scripts run seed
    ```
-   The seed is idempotent; running it again resets the demo accounts and the catalog's prices and stock. Only run it against a development database.
+   The seed is idempotent; running it again resets the demo accounts and the catalog's prices and stock. Only run it against a development database. Locally it also creates the admin account `admin@instaveg.com` with the password `admin123`; the public demo uses a separate, private admin password (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 4. Start the API and the frontend in two terminals:
    ```bash
    pnpm --filter @workspace/api-server run dev
@@ -92,11 +92,12 @@ docs/            AUDIT.md, ENGINEERING_NOTES.md
 
 | Role | Email | Password |
 |---|---|---|
-| Admin | `admin@instaveg.com` | `admin123` |
+| Buyer | `buyer@instaveg.com` | `buyer123` |
 | Seller (Ramesh Fresh Farm) | `ramesh@instaveg.com` | `seller123` |
 | Seller (Priya Organic Greens) | `priya@instaveg.com` | `seller123` |
 | Seller (Arjun Exotic Harvest) | `arjun@instaveg.com` | `seller123` |
-| Buyer | `buyer@instaveg.com` | `buyer123` |
+
+Admin access to the public demo is available on request.
 
 ## Scripts
 
@@ -112,6 +113,11 @@ docs/            AUDIT.md, ENGINEERING_NOTES.md
 | `pnpm --filter @workspace/api-spec run codegen` | Regenerate the API client and Zod schemas after editing `openapi.yaml` |
 | `pnpm run typecheck` | Typecheck every package |
 | `pnpm run build` | Typecheck, then build every package |
+| `pnpm run build:vercel` | Full build, then write the Vercel deployment to `.vercel/output` (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)) |
+
+## Deployment
+
+The app deploys as one Vercel project (static React app plus the API as a Vercel Function in Singapore) with Neon Postgres. [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) has the step-by-step setup, environment variables, the production schema push and seed, and a smoke-test checklist.
 
 ## Testing
 
