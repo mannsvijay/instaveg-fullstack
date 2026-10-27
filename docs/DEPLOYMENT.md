@@ -23,6 +23,8 @@ Why this design: the workspace packages export TypeScript source, which Node can
 
 The build never pushes the schema or seeds data, and the API never seeds on startup. Both are manual steps below.
 
+To try the exact build locally before deploying: `pnpm run build:vercel`, then `pnpm run preview:vercel` (serves `.vercel/output` on http://localhost:3100 with the same routing and cache headers, the function running with `NODE_ENV=production` and `VERCEL=1`, using the database in your `.env`). It is a stand-in, not Vercel itself, so the smoke test below is still needed.
+
 ## Environments and databases
 
 | Where | Neon branch | Connection string | `SESSION_SECRET` |
