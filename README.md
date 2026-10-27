@@ -72,6 +72,7 @@ docs/            AUDIT.md, ENGINEERING_NOTES.md
 2. Create `.env` in the repository root from the example (PowerShell: `Copy-Item .env.example .env`; bash: `cp .env.example .env`), then fill in:
    - `DATABASE_URL`: your Neon dev branch connection string.
    - `SESSION_SECRET`: at least 32 random characters, for example from `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`. The API will not start without it.
+   - Optional settings (`CORS_ORIGINS`, `AUTH_RATE_LIMIT_MAX`, `AUTH_RATE_LIMIT_WINDOW_MS`, `PORT`) are described in `.env.example`.
 3. Create the tables and load the demo data:
    ```bash
    pnpm --filter @workspace/db run push
@@ -114,7 +115,7 @@ docs/            AUDIT.md, ENGINEERING_NOTES.md
 
 ## Testing
 
-The API has 34 automated tests: 21 cover the security fixes (access control on orders and products, order status rules, cash-on-delivery-only payments, the session-secret requirement and address ownership) and 13 cover business rules (seller approval, product editing, review rules, quantity and stock validation, one order per seller with totals equal to the cart total, stock decrement and restore on cancel, and rollback of a failed checkout).
+The API has 45 automated tests: 22 cover the security fixes (access control on orders and products, order status rules, cash-on-delivery-only payments, the session-secret requirement and address ownership), 16 cover business rules (seller approval, product editing and deletion, review rules and review eligibility, quantity and stock validation, one order per seller with totals equal to the cart total, stock and order-count updates on checkout and cancel, rollback of a failed checkout, and the admin seller list), and 7 cover API hardening (JSON 404s and errors, security headers, login and register rate limits, and CORS).
 
 ```bash
 pnpm --filter @workspace/api-server run test
@@ -124,7 +125,7 @@ The tests start the API locally and use the database in `.env`, so point it at a
 
 ## Security highlights
 
-This codebase went through an audit that fixed, among other things, broken access control on orders and products, forgeable payment verification, a hardcoded JWT secret fallback, use of other users' addresses at checkout, and checkout pricing and stock bugs. See [docs/ENGINEERING_NOTES.md](docs/ENGINEERING_NOTES.md) for the summary and [docs/AUDIT.md](docs/AUDIT.md) for the full audit and open items.
+This codebase went through an audit that fixed, among other things, broken access control on orders and products, forgeable payment verification (the app is now cash-on-delivery only by design), a hardcoded JWT secret fallback, use of other users' addresses at checkout, and checkout pricing and stock bugs. The API also sends security headers, only allows cross-origin requests from origins listed in `CORS_ORIGINS`, and rate-limits failed logins and registrations. See [docs/ENGINEERING_NOTES.md](docs/ENGINEERING_NOTES.md) for the summary and [docs/AUDIT.md](docs/AUDIT.md) for the full audit and open items.
 
 ## Image credits
 
