@@ -99,6 +99,7 @@ Unused workspace package: `artifacts/mockup-sandbox` (a Replit design-preview sa
 | L7 | Category filter chips on the category page show a visible horizontal scrollbar: `scrollbar-hide` class is not defined anywhere (no plugin/CSS). Fix in Batch 6 | `pages/CategoryBrowse.tsx:59` |
 | L8 | Checkout payment method card sits in the left half of a two-column grid now that only COD remains; make the single option full width. Batch 3, in the H10 commit | `pages/Checkout.tsx:200` |
 | L9 | A suspended (or otherwise non-approved) seller can still delete their own products. Batch 6 | `routes/products.ts` `DELETE /products/:id` checks ownership but not seller status |
+| L10 | 7 products (spinach, coriander, fenugreek leaves, bottle gourd, pumpkin, radish, ginger) and 3 categories (Leafy Vegetables, Gourds, Herbs & Spices) are not yet in the studio style; brinjal is a striped variety. No clean isolated openly licensed photo was found on Wikimedia Commons. Replace later with real Pexels/Pixabay/Unsplash photos (no AI-generated or paid-stock previews) through the same cutout pipeline | `public/images/products/`, `public/images/categories/`, `CREDITS.md` |
 
 Note: the visible Replit badge on the live site is injected by Replit hosting. It disappears automatically once hosted on Vercel; the CSS hack should still be deleted.
 
