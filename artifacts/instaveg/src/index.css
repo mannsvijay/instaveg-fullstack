@@ -117,3 +117,12 @@
     @apply font-serif;
   }
 }
+
+/* L7: hide a scroll container's scrollbar while keeping it scrollable (category chips). */
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

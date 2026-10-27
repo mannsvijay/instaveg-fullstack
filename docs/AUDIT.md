@@ -32,7 +32,8 @@ The findings below are kept as originally recorded. This table tracks where each
 | M13, M14 | Open (Batch 6) | |
 | L1–L5 | Fixed (Batch 5) | Replit branding, plugins, config, assets and sandbox removed |
 | L6 | Fixed (Batch 4) | Unreferenced images removed |
-| L7, L9 | Open (Batch 6) | |
+| L7 | Fixed (Batch 6) | `scrollbar-hide` utility defined; the chips still scroll |
+| L9 | Open (Batch 6) | |
 | L8 | Fixed (Batch 3) | Full-width COD card |
 | L10 | Open | Replace with real Pexels/Pixabay/Unsplash photos |
 | L11 | Open | Drop `orders.razorpay_order_id` in a future migration |
