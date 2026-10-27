@@ -33,7 +33,7 @@ The findings below are kept as originally recorded. This table tracks where each
 | L1–L5 | Fixed (Batch 5) | Replit branding, plugins, config, assets and sandbox removed |
 | L6 | Fixed (Batch 4) | Unreferenced images removed |
 | L7 | Fixed (Batch 6) | `scrollbar-hide` utility defined; the chips still scroll |
-| L9 | Open (Batch 6) | |
+| L9 | Fixed (Batch 6) | Non-approved sellers get 403 on product delete (admin exempt) |
 | L8 | Fixed (Batch 3) | Full-width COD card |
 | L10 | Open | Replace with real Pexels/Pixabay/Unsplash photos |
 | L11 | Open | Drop `orders.razorpay_order_id` in a future migration |

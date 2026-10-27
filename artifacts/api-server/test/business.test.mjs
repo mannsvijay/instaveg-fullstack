@@ -100,6 +100,8 @@ test("H5: products of a suspended seller are hidden from the public", async () =
   assert.equal((await api("GET", `/products/${product.id}`, s.admin.token)).status, 200, "admin still sees it");
   assert.equal((await api("GET", `/products/${product.id}`, s.testSeller.token)).status, 200, "owner still sees it");
   assert.equal((await api("PATCH", `/products/${product.id}`, s.testSeller.token, { stock: 1 })).status, 403, "suspended owner cannot update");
+  assert.equal((await api("DELETE", `/products/${product.id}`, s.testSeller.token)).status, 403, "L9: suspended owner cannot delete");
+  assert.equal((await api("GET", `/products/${product.id}`, s.admin.token)).status, 200, "L9: product still exists");
   assert.equal((await api("PATCH", `/products/${product.id}`, s.admin.token, { stock: 1 })).status, 200, "admin is exempt");
 });
 

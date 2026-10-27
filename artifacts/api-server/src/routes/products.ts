@@ -192,6 +192,11 @@ router.delete("/products/:id", requireAuth, requireRole("seller", "admin"), asyn
     res.status(404).json({ error: "Product not found" });
     return;
   }
+  // L9: like create/update (H5), only approved sellers may delete; admin is exempt.
+  if (user.role !== "admin" && (await getSellerForUser(user.id))?.status !== "approved") {
+    res.status(403).json({ error: NOT_APPROVED });
+    return;
+  }
   await db.delete(productsTable).where(eq(productsTable.id, parsed.data.id));
   res.sendStatus(204);
 });
