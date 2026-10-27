@@ -14,6 +14,15 @@ const DELIVERY_FEE = 40;
 
 type AuthUser = { id: number; role: string };
 
+// Forward-only, one step at a time. delivered and cancelled are final.
+const NEXT_STATUS: Record<string, string> = {
+  pending: "confirmed",
+  confirmed: "preparing",
+  preparing: "dispatched",
+  dispatched: "delivered",
+};
+const CANCELLABLE = ["pending", "confirmed"];
+
 // Sellers act through their sellers row, not their user id.
 async function getSellerIdForUser(userId: number): Promise<number | null> {
   const [seller] = await db.select({ id: sellersTable.id }).from(sellersTable).where(eq(sellersTable.userId, userId));
@@ -161,12 +170,30 @@ router.patch("/orders/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [order] = await db.update(ordersTable).set({
-    status: parsed.data.status,
-    ...(parsed.data.eta ? { eta: parsed.data.eta } : {}),
-  }).where(eq(ordersTable.id, params.data.id)).returning();
-  if (!order) {
+  const user = (req as typeof req & { user: AuthUser }).user;
+  const [current] = await db.select().from(ordersTable).where(eq(ordersTable.id, params.data.id));
+  if (!current || !(await canAccessOrder(user, current))) {
     res.status(404).json({ error: "Order not found" });
+    return;
+  }
+  const next = parsed.data.status;
+  const isStaff = user.role === "admin"
+    || (user.role === "seller" && current.sellerId !== null && (await getSellerIdForUser(user.id)) === current.sellerId);
+  if (!isStaff && !(next === "cancelled" && current.status === "pending")) {
+    res.status(403).json({ error: "Buyers may only cancel their own pending orders" });
+    return;
+  }
+  const allowed = next === "cancelled" ? CANCELLABLE.includes(current.status) : NEXT_STATUS[current.status] === next;
+  if (!allowed) {
+    res.status(400).json({ error: `Cannot change order status from ${current.status} to ${next}` });
+    return;
+  }
+  const [order] = await db.update(ordersTable).set({
+    status: next,
+    ...(isStaff && parsed.data.eta ? { eta: parsed.data.eta } : {}),
+  }).where(and(eq(ordersTable.id, current.id), eq(ordersTable.status, current.status))).returning();
+  if (!order) {
+    res.status(409).json({ error: "Order status changed concurrently, please retry" });
     return;
   }
   res.json(await enrichOrder(order));

@@ -40,6 +40,14 @@ export default function AdminOrders() {
           qc.invalidateQueries({ queryKey: getAdminListOrdersQueryKey({}) });
           toast({ title: `Order updated to ${s}` });
         },
+        onError: (err) => {
+          const apiMessage = (err as { data?: { error?: unknown } }).data?.error;
+          toast({
+            title: "Could not update order",
+            description: typeof apiMessage === "string" ? apiMessage : err instanceof Error ? err.message : undefined,
+            variant: "destructive",
+          });
+        },
       }
     );
   };
