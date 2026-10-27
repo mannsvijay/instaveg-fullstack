@@ -30,6 +30,14 @@ async function canManageProduct(user: { id: number; role: string }, productId: n
 
 const NOT_APPROVED = "Your seller account is awaiting approval";
 
+// Server-side number rules (H8): price > 0, mrp >= price when set, stock a whole number >= 0.
+function productNumbersError(values: { price: number; mrp?: number | null; stock: number }): string | null {
+  if (!Number.isFinite(values.price) || values.price <= 0) return "Price must be greater than 0";
+  if (values.mrp != null && (!Number.isFinite(values.mrp) || values.mrp < values.price)) return "MRP must be at least the price";
+  if (!Number.isInteger(values.stock) || values.stock < 0) return "Stock must be a whole number of 0 or more";
+  return null;
+}
+
 async function enrichProduct(product: typeof productsTable.$inferSelect) {
   const [seller] = await db.select({ storeName: sellersTable.storeName, city: sellersTable.city })
     .from(sellersTable).where(eq(sellersTable.id, product.sellerId));
@@ -106,6 +114,11 @@ router.post("/products", requireAuth, requireRole("seller", "admin"), async (req
     res.status(403).json({ error: NOT_APPROVED });
     return;
   }
+  const numbersError = productNumbersError(parsed.data);
+  if (numbersError) {
+    res.status(400).json({ error: numbersError });
+    return;
+  }
   const slug = await uniqueProductSlug(parsed.data.name);
   const [product] = await db.insert(productsTable).values({ ...parsed.data, slug, sellerId: seller.id }).returning();
   res.status(201).json(await enrichProduct(product));
@@ -144,6 +157,17 @@ router.patch("/products/:id", requireAuth, requireRole("seller", "admin"), async
   }
   if (user.role !== "admin" && (await getSellerForUser(user.id))?.status !== "approved") {
     res.status(403).json({ error: NOT_APPROVED });
+    return;
+  }
+  // Validate the values the product will have after this update.
+  const [existing] = await db.select().from(productsTable).where(eq(productsTable.id, params.data.id));
+  const numbersError = productNumbersError({
+    price: parsed.data.price ?? existing.price,
+    mrp: parsed.data.mrp !== undefined ? parsed.data.mrp : existing.mrp,
+    stock: parsed.data.stock ?? existing.stock,
+  });
+  if (numbersError) {
+    res.status(400).json({ error: numbersError });
     return;
   }
   const [product] = await db.update(productsTable).set(parsed.data)
