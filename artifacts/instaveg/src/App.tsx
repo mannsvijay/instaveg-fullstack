@@ -187,6 +187,14 @@ function Router() {
         </ProtectedRoute>
       </Route>
 
+      <Route path="/seller/products/:id/edit">
+        <ProtectedRoute role={["seller", "admin"]}>
+          <SellerLayout>
+            <SellerAddProduct />
+          </SellerLayout>
+        </ProtectedRoute>
+      </Route>
+
       <Route path="/seller/orders">
         <ProtectedRoute role="seller">
           <SellerLayout>
