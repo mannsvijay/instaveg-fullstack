@@ -23,7 +23,7 @@ export function ProductImage({ src, alt, className, imgClassName, eager = false 
   }, [src]);
 
   return (
-    <div className={cn("relative aspect-square overflow-hidden bg-secondary flex-shrink-0", className)}>
+    <div className={cn("relative aspect-square overflow-hidden bg-product-bg flex-shrink-0", className)}>
       <img
         src={current}
         alt={alt}

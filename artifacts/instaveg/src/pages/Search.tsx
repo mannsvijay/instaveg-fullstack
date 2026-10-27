@@ -235,7 +235,7 @@ export default function SearchPage() {
                     className="group relative bg-white rounded-2xl overflow-hidden border border-border/40 hover:border-primary/30 hover:shadow-md transition-all"
                   >
                     <Link href={`/product/${product.id}`}>
-                      <div className="aspect-square overflow-hidden bg-muted/30">
+                      <div className="aspect-square overflow-hidden bg-product-bg">
                         <ProductImage
                           src={product.images?.[0]}
                           alt={product.name}

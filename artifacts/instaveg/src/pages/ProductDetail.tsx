@@ -97,7 +97,7 @@ export default function ProductDetail() {
       </div>
 
       {/* Image */}
-      <div className="relative bg-white/60 mx-4 mt-4 rounded-2xl overflow-hidden max-w-md md:mx-auto">
+      <div className="relative bg-product-bg mx-4 mt-4 rounded-2xl overflow-hidden max-w-md md:mx-auto">
         <ProductImage src={image} alt={p.name} className="w-full" eager />
         {p.isOrganic && (
           <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">Organic</Badge>
