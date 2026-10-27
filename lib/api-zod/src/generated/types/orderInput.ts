@@ -9,6 +9,7 @@ import type { OrderInputPaymentMethod } from './orderInputPaymentMethod';
 
 export interface OrderInput {
   addressId: number;
+  /** Cash on delivery is the only payment method (COD-only by design). */
   paymentMethod: OrderInputPaymentMethod;
   notes?: string;
 }

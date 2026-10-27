@@ -542,51 +542,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/Order"
 
-  # PAYMENT
-  /orders/{id}/payment/create:
-    post:
-      operationId: createPayment
-      tags: [orders]
-      summary: Create Razorpay payment order
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Razorpay order
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PaymentOrder"
-
-  /orders/{id}/payment/verify:
-    post:
-      operationId: verifyPayment
-      tags: [orders]
-      summary: Verify Razorpay payment
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PaymentVerification"
-      responses:
-        "200":
-          description: Payment verified
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Order"
-
   # WISHLIST
   /wishlist:
     get:
@@ -1484,8 +1439,6 @@ components:
           enum: [pending, paid, failed, refunded]
         paymentMethod:
           type: ["string", "null"]
-        razorpayOrderId:
-          type: ["string", "null"]
         items:
           type: array
           items:
@@ -1544,7 +1497,8 @@ components:
           type: integer
         paymentMethod:
           type: string
-          enum: [razorpay, cod]
+          description: Cash on delivery is the only payment method (COD-only by design).
+          enum: [cod]
         notes:
           type: string
 
@@ -1556,31 +1510,6 @@ components:
           type: string
           enum: [pending, confirmed, preparing, dispatched, delivered, cancelled]
         eta:
-          type: string
-
-    # PAYMENT
-    PaymentOrder:
-      type: object
-      required: [razorpayOrderId, amount, currency, keyId]
-      properties:
-        razorpayOrderId:
-          type: string
-        amount:
-          type: integer
-        currency:
-          type: string
-        keyId:
-          type: string
-
-    PaymentVerification:
-      type: object
-      required: [razorpayOrderId, razorpayPaymentId, razorpaySignature]
-      properties:
-        razorpayOrderId:
-          type: string
-        razorpayPaymentId:
-          type: string
-        razorpaySignature:
           type: string
 
     # REVIEW

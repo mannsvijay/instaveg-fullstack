@@ -18,8 +18,6 @@ export interface Order {
   paymentStatus: OrderPaymentStatus;
   /** @nullable */
   paymentMethod?: string | null;
-  /** @nullable */
-  razorpayOrderId?: string | null;
   items?: OrderItem[];
   /** @nullable */
   addressId?: number | null;

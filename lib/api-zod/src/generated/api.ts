@@ -505,7 +505,6 @@ export const ListOrdersResponseItem = zod.object({
   "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
   "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
   "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "productId": zod.number(),
@@ -536,7 +535,7 @@ export const ListOrdersResponse = zod.array(ListOrdersResponseItem)
  */
 export const CreateOrderBody = zod.object({
   "addressId": zod.number(),
-  "paymentMethod": zod.enum(['razorpay', 'cod']),
+  "paymentMethod": zod.enum(['cod']).describe('Cash on delivery is the only payment method (COD-only by design).'),
   "notes": zod.string().optional()
 })
 
@@ -555,7 +554,6 @@ export const GetOrderResponse = zod.object({
   "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
   "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
   "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "productId": zod.number(),
@@ -599,67 +597,6 @@ export const UpdateOrderStatusResponse = zod.object({
   "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
   "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
   "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
-  "items": zod.array(zod.object({
-  "id": zod.number(),
-  "productId": zod.number(),
-  "quantity": zod.number(),
-  "price": zod.number(),
-  "productName": zod.string().nullish(),
-  "productImage": zod.string().nullish(),
-  "productUnit": zod.string().nullish()
-})).optional(),
-  "addressId": zod.number().nullish(),
-  "addressSnapshot": zod.string().nullish(),
-  "subtotal": zod.number().optional(),
-  "deliveryFee": zod.number().optional(),
-  "platformFee": zod.number().optional(),
-  "total": zod.number(),
-  "eta": zod.string().nullish(),
-  "notes": zod.string().nullish(),
-  "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date().optional(),
-  "sellerName": zod.string().nullish(),
-  "buyerName": zod.string().nullish()
-})
-
-
-/**
- * @summary Create Razorpay payment order
- */
-export const CreatePaymentParams = zod.object({
-  "id": zod.coerce.number()
-})
-
-export const CreatePaymentResponse = zod.object({
-  "razorpayOrderId": zod.string(),
-  "amount": zod.number(),
-  "currency": zod.string(),
-  "keyId": zod.string()
-})
-
-
-/**
- * @summary Verify Razorpay payment
- */
-export const VerifyPaymentParams = zod.object({
-  "id": zod.coerce.number()
-})
-
-export const VerifyPaymentBody = zod.object({
-  "razorpayOrderId": zod.string(),
-  "razorpayPaymentId": zod.string(),
-  "razorpaySignature": zod.string()
-})
-
-export const VerifyPaymentResponse = zod.object({
-  "id": zod.number(),
-  "userId": zod.number(),
-  "sellerId": zod.number().nullish(),
-  "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
-  "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
-  "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "productId": zod.number(),
@@ -935,7 +872,6 @@ export const GetSellerOrdersResponseItem = zod.object({
   "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
   "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
   "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "productId": zod.number(),
@@ -1161,7 +1097,6 @@ export const AdminListOrdersResponseItem = zod.object({
   "status": zod.enum(['pending', 'confirmed', 'preparing', 'dispatched', 'delivered', 'cancelled']),
   "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'refunded']),
   "paymentMethod": zod.string().nullish(),
-  "razorpayOrderId": zod.string().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "productId": zod.number(),

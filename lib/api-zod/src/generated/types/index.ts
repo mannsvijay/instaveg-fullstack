@@ -36,8 +36,6 @@ export * from './orderPaymentStatus';
 export * from './orderStatus';
 export * from './orderStatusUpdate';
 export * from './orderStatusUpdateStatus';
-export * from './paymentOrder';
-export * from './paymentVerification';
 export * from './product';
 export * from './productInput';
 export * from './productList';

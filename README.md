@@ -10,7 +10,7 @@
 - Browse 8 categories and 32 products, search by name and filter by price
 - Product pages with unit, MRP and discount, nutrition info, organic badge and reviews
 - Multi-farm cart; checkout splits into one order per farm and shows delivery and platform fees up front
-- Cash on delivery
+- Cash on delivery: InstaVEG is COD-only by design, so there is no online payment step
 - Order history and order status tracking
 - Wishlist, saved delivery addresses and profile
 

@@ -6,10 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Cash on delivery is the only payment method (COD-only by design).
+ */
 export type OrderInputPaymentMethod = typeof OrderInputPaymentMethod[keyof typeof OrderInputPaymentMethod];
 
 
 export const OrderInputPaymentMethod = {
-  razorpay: 'razorpay',
   cod: 'cod',
 } as const;

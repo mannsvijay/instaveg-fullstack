@@ -151,16 +151,22 @@ test("C4: ?sellerId returns only that seller's products", async () => {
 });
 
 // C5
-test("C5: razorpay orders are rejected while Razorpay is not configured (400)", async () => {
+test("C5/H4: razorpay orders are rejected, COD-only by design (400)", async () => {
   const res = await api("POST", "/orders", s.buyer.token, { addressId: s.buyerAddress, paymentMethod: "razorpay", notes: NOTE });
   assert.equal(res.status, 400);
 });
-test("C5: payment create/verify return 503 while Razorpay is not configured", async () => {
-  assert.equal((await api("POST", `/orders/${s.orderA.id}/payment/create`, s.buyer.token)).status, 503);
+test("H4: the removed payment create/verify routes return 404", async () => {
+  assert.equal((await api("POST", `/orders/${s.orderA.id}/payment/create`, s.buyer.token)).status, 404);
   const verify = await api("POST", `/orders/${s.orderA.id}/payment/verify`, s.buyer.token, {
     razorpayOrderId: "order_x", razorpayPaymentId: "pay_x", razorpaySignature: "0".repeat(64),
   });
-  assert.equal(verify.status, 503);
+  assert.equal(verify.status, 404);
+});
+test("H4: order responses no longer expose razorpayOrderId", async () => {
+  const res = await api("GET", `/orders/${s.orderA.id}`, s.buyer.token);
+  assert.equal(res.status, 200);
+  assert.equal("razorpayOrderId" in res.data, false);
+  assert.equal(res.data.paymentMethod, "cod");
 });
 
 // C6

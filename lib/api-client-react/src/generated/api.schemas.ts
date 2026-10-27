@@ -364,8 +364,6 @@ export interface Order {
   paymentStatus: OrderPaymentStatus;
   /** @nullable */
   paymentMethod?: string | null;
-  /** @nullable */
-  razorpayOrderId?: string | null;
   items?: OrderItem[];
   /** @nullable */
   addressId?: number | null;
@@ -387,16 +385,19 @@ export interface Order {
   buyerName?: string | null;
 }
 
+/**
+ * Cash on delivery is the only payment method (COD-only by design).
+ */
 export type OrderInputPaymentMethod = typeof OrderInputPaymentMethod[keyof typeof OrderInputPaymentMethod];
 
 
 export const OrderInputPaymentMethod = {
-  razorpay: 'razorpay',
   cod: 'cod',
 } as const;
 
 export interface OrderInput {
   addressId: number;
+  /** Cash on delivery is the only payment method (COD-only by design). */
   paymentMethod: OrderInputPaymentMethod;
   notes?: string;
 }
@@ -416,19 +417,6 @@ export const OrderStatusUpdateStatus = {
 export interface OrderStatusUpdate {
   status: OrderStatusUpdateStatus;
   eta?: string;
-}
-
-export interface PaymentOrder {
-  razorpayOrderId: string;
-  amount: number;
-  currency: string;
-  keyId: string;
-}
-
-export interface PaymentVerification {
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
 }
 
 export interface Review {

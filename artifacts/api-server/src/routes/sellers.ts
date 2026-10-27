@@ -3,6 +3,7 @@ import { db, sellersTable, usersTable, ordersTable, productsTable, orderItemsTab
 import { desc, eq } from "drizzle-orm";
 import { requireAuth, requireRole } from "../lib/auth";
 import { ListSellersQueryParams, GetSellerParams, UpdateSellerProfileBody, GetSellerOrdersQueryParams } from "@workspace/api-zod";
+import { orderFields } from "../lib/order-fields";
 
 const router = Router();
 
@@ -77,7 +78,7 @@ router.get("/sellers/dashboard/orders", requireAuth, requireRole("seller"), asyn
     const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
     const [buyer] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, order.userId));
     return {
-      ...order,
+      ...orderFields(order),
       items,
       buyerName: buyer?.name ?? null,
       sellerName: seller.storeName,

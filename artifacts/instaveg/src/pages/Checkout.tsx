@@ -22,7 +22,6 @@ export default function Checkout() {
   const qc = useQueryClient();
 
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"cod">("cod");
   const [loading, setLoading] = useState(false);
   const [placedOrders, setPlacedOrders] = useState<any[] | null>(null);
 
@@ -46,7 +45,7 @@ export default function Checkout() {
 
     // COD only (C5). Checkout returns one order per seller (H7).
     createOrderMutation.mutate(
-      { data: { addressId: activeAddress, paymentMethod, notes: "" } },
+      { data: { addressId: activeAddress, paymentMethod: "cod", notes: "" } },
       {
         onSuccess: (orders) => {
           qc.invalidateQueries({ queryKey: getGetCartQueryKey() });
@@ -144,22 +143,10 @@ export default function Checkout() {
         <h3 className="font-semibold flex items-center gap-2 mb-4">
           <CreditCard className="w-4 h-4 text-primary" /> Payment Method
         </h3>
-        <div className="grid grid-cols-1 gap-3">
-          {[
-            // COD-only (C5): Razorpay is hidden until real test-mode integration (H4).
-            { value: "cod", label: "Cash on Delivery", icon: Wallet },
-          ].map(({ value, label, icon: Icon }) => (
-            <label
-              key={value}
-              className={`flex flex-col items-center gap-2 p-4 rounded-xl border cursor-pointer transition-colors text-center ${
-                paymentMethod === value ? "border-primary bg-primary/5" : "border-border/30 hover:border-primary/30"
-              }`}
-            >
-              <input type="radio" name="payment" className="sr-only" checked={paymentMethod === value} onChange={() => setPaymentMethod(value as any)} />
-              <Icon className="w-6 h-6 text-primary" />
-              <span className="text-sm font-medium">{label}</span>
-            </label>
-          ))}
+        {/* Cash on delivery is the only payment method (H4: COD-only by design). */}
+        <div className="flex flex-col items-center gap-2 p-4 rounded-xl border border-primary bg-primary/5 text-center">
+          <Wallet className="w-6 h-6 text-primary" />
+          <span className="text-sm font-medium">Cash on Delivery</span>
         </div>
       </div>
 

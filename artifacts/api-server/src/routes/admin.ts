@@ -6,6 +6,7 @@ import {
   AdminListUsersQueryParams, AdminUpdateUserBody, AdminUpdateUserParams,
   AdminApproveSellerParams, AdminApproveSellerBody, AdminListOrdersQueryParams,
 } from "@workspace/api-zod";
+import { orderFields } from "../lib/order-fields";
 
 const router = Router();
 
@@ -133,7 +134,7 @@ router.get("/admin/orders", requireAuth, requireRole("admin"), async (req, res):
       ? await db.select({ storeName: sellersTable.storeName }).from(sellersTable).where(eq(sellersTable.id, order.sellerId))
       : [null];
     return {
-      ...order,
+      ...orderFields(order),
       items,
       buyerName: buyer?.name ?? null,
       sellerName: seller?.storeName ?? null,

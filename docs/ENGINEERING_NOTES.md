@@ -18,7 +18,7 @@ product photos were frequently wrong or reused across products.
 | C2 | Any user, including buyers, could set any status on any order | Only the order's seller or an admin may change status, one step forward at a time (`pending → confirmed → preparing → dispatched → delivered`) or cancel from `pending`/`confirmed`; a buyer may only cancel their own pending order. `delivered` and `cancelled` are final; concurrent changes return 409 |
 | C3 | Sellers could list every order on the platform | `GET /orders` is scoped by role: own orders, own seller's orders, or all for admins |
 | C4 | Sellers could edit or delete other sellers' products; "My Products" listed all products | `PATCH`/`DELETE /products/:id` require ownership (admins exempt), 404 otherwise; the seller page requests only its own seller id |
-| C5 | Payment verification could be forged: no ownership check, signature not tied to the stored order, public fallback secret | Checkout is cash on delivery only. Without Razorpay keys the payment endpoints return 503 and online-payment orders are rejected; with keys, verification checks ownership and the stored `razorpayOrderId` and compares signatures with `crypto.timingSafeEqual` |
+| C5, H4 | Payment verification could be forged: no ownership check, signature not tied to the stored order, public fallback secret; the Razorpay integration was simulated | InstaVEG is cash-on-delivery only by design. The Razorpay payment endpoints, the `razorpay` payment method and all client payment code were removed; orders accept only `cod`, and the old payment routes return 404 |
 | C6 | Hardcoded JWT secret fallback (`"instaveg-secret-key"`) allowed forging admin tokens | The API refuses to start unless `SESSION_SECRET` is set and at least 32 characters |
 | C7 | Checkout accepted another user's address id, copying their address into the order | The address must belong to the caller, otherwise 400 |
 
@@ -68,6 +68,6 @@ temporary products (slug prefix `security-test-`) and never modify seeded data.
 
 ## Still open
 
-See `docs/AUDIT.md`: real Razorpay test-mode integration (H4), frontend hardening and remaining
+See `docs/AUDIT.md`: frontend hardening and remaining
 medium items (M4–M7, M9–M12), and a few images not yet in the studio style (L10). Deployment to
 Vercel and Neon follows in a later batch.

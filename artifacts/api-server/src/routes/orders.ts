@@ -3,11 +3,11 @@ import { db, ordersTable, orderItemsTable, cartItemsTable, cartsTable, productsT
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import { priceCart } from "../lib/pricing";
+import { orderFields } from "../lib/order-fields";
 import {
   CreateOrderBody, GetOrderParams, ListOrdersQueryParams, UpdateOrderStatusParams,
-  UpdateOrderStatusBody, CreatePaymentParams, VerifyPaymentParams, VerifyPaymentBody,
+  UpdateOrderStatusBody,
 } from "@workspace/api-zod";
-import crypto from "crypto";
 
 const router = Router();
 
@@ -24,13 +24,6 @@ const NEXT_STATUS: Record<string, string> = {
   dispatched: "delivered",
 };
 const CANCELLABLE = ["pending", "confirmed"];
-
-// Razorpay is disabled unless both keys are configured (COD-only otherwise).
-function razorpayConfig(): { keyId: string; keySecret: string } | null {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  return keyId && keySecret ? { keyId, keySecret } : null;
-}
 
 // Sellers act through their sellers row, not their user id.
 async function getSellerIdForUser(userId: number): Promise<number | null> {
@@ -54,7 +47,7 @@ async function enrichOrder(order: typeof ordersTable.$inferSelect) {
     : [null];
   const [buyer] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, order.userId));
   return {
-    ...order,
+    ...orderFields(order),
     items,
     sellerName: seller?.storeName ?? null,
     buyerName: buyer?.name ?? null,
@@ -92,11 +85,8 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  // paymentMethod is validated as "cod" by the schema: COD-only by design (H4).
   const { addressId, paymentMethod, notes } = parsed.data;
-  if (paymentMethod === "razorpay" && !razorpayConfig()) {
-    res.status(400).json({ error: "Online payment is not available; please choose Cash on Delivery" });
-    return;
-  }
   const [address] = await db.select().from(addressesTable)
     .where(and(eq(addressesTable.id, addressId), eq(addressesTable.userId, user.id)));
   if (!address) {
@@ -262,77 +252,6 @@ router.patch("/orders/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(409).json({ error: "Order status changed concurrently, please retry" });
     return;
   }
-  res.json(await enrichOrder(order));
-});
-
-router.post("/orders/:id/payment/create", requireAuth, async (req, res): Promise<void> => {
-  const config = razorpayConfig();
-  if (!config) {
-    res.status(503).json({ error: "Online payment is not available" });
-    return;
-  }
-  const user = (req as typeof req & { user: AuthUser }).user;
-  const parsed = CreatePaymentParams.safeParse(req.params);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, parsed.data.id));
-  if (!order || order.userId !== user.id) {
-    res.status(404).json({ error: "Order not found" });
-    return;
-  }
-  if (order.paymentMethod !== "razorpay" || order.paymentStatus === "paid") {
-    res.status(400).json({ error: "Order is not awaiting online payment" });
-    return;
-  }
-  const razorpayOrderId = `order_${Date.now()}_${order.id}`;
-  await db.update(ordersTable).set({ razorpayOrderId }).where(eq(ordersTable.id, order.id));
-  res.json({
-    razorpayOrderId,
-    amount: Math.round(order.total * 100),
-    currency: "INR",
-    keyId: config.keyId,
-  });
-});
-
-router.post("/orders/:id/payment/verify", requireAuth, async (req, res): Promise<void> => {
-  const config = razorpayConfig();
-  if (!config) {
-    res.status(503).json({ error: "Online payment is not available" });
-    return;
-  }
-  const user = (req as typeof req & { user: AuthUser }).user;
-  const params = VerifyPaymentParams.safeParse(req.params);
-  const parsed = VerifyPaymentBody.safeParse(req.body);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = parsed.data;
-  const [current] = await db.select().from(ordersTable).where(eq(ordersTable.id, params.data.id));
-  if (!current || current.userId !== user.id) {
-    res.status(404).json({ error: "Order not found" });
-    return;
-  }
-  // Signature must be over the razorpayOrderId we issued for this order.
-  if (!current.razorpayOrderId || razorpayOrderId !== current.razorpayOrderId) {
-    res.status(400).json({ error: "Payment verification failed" });
-    return;
-  }
-  const expected = Buffer.from(crypto.createHmac("sha256", config.keySecret)
-    .update(`${current.razorpayOrderId}|${razorpayPaymentId}`).digest("hex"));
-  const received = Buffer.from(razorpaySignature);
-  if (expected.length !== received.length || !crypto.timingSafeEqual(expected, received)) {
-    res.status(400).json({ error: "Payment verification failed" });
-    return;
-  }
-  const [order] = await db.update(ordersTable).set({ paymentStatus: "paid", status: "confirmed" })
-    .where(eq(ordersTable.id, current.id)).returning();
   res.json(await enrichOrder(order));
 });
 
