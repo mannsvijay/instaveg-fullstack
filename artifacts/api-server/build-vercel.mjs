@@ -24,11 +24,44 @@ const webDist = path.join(repoRoot, "artifacts/instaveg/dist/public");
 // every query stays in-region. See docs/DEPLOYMENT.md.
 const FUNCTION_REGION = "sin1";
 
+// M17: security headers for the website itself (HTML, JS, CSS, images);
+// helmet in the Express app covers /api. The CSP matches what the app loads:
+// - scripts: only the Vite bundle from this origin (no inline scripts);
+// - styles: own CSS and Google Fonts CSS, plus inline styles, which
+//   framer-motion, Recharts and Radix (scroll lock) set at runtime;
+// - fonts: Google Fonts files;
+// - images: own files, plus any https: URL, because sellers may enter
+//   external image URLs for their products (AddProduct "Image URLs");
+// - API calls: same origin only.
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: https:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
+const SITE_SECURITY_HEADERS = {
+  "Content-Security-Policy": CONTENT_SECURITY_POLICY,
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  // The app uses none of these browser features.
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()",
+};
+
 // Routing (Build Output API config.json). Header rules run first with
 // `continue`; then the filesystem (static files and the /api function);
 // then rewrites with `check: true`, which is what vercel.json "rewrites"
 // compile to.
 const routes = [
+  // Every path except /api, whose headers come from helmet in the function.
+  { src: "^/(?!api(?:/|$)).*$", headers: SITE_SECURITY_HEADERS, continue: true },
   // Vite's content-hashed bundles never change under the same name.
   { src: "^/assets/(.*)$", headers: { "Cache-Control": "public, max-age=31536000, immutable" }, continue: true },
   // Product/category photos keep their names when replaced, so a week in

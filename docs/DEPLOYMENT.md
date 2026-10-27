@@ -21,6 +21,8 @@ Why this design: the workspace packages export TypeScript source, which Node can
 | `/images/*` (product and category photos) | `public, max-age=604800, stale-while-revalidate=86400` |
 | `/`, `/index.html` and SPA fallback responses | `no-cache` |
 
+Every path except `/api` also gets the website's security headers (M17, `SITE_SECURITY_HEADERS` in `build-vercel.mjs`): a Content-Security-Policy (own scripts only; own and Google Fonts styles plus inline styles; Google Fonts files; own, `data:` and `https:` images because sellers may enter external image URLs; same-origin API calls; `frame-ancestors 'none'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` and a `Permissions-Policy` that turns off camera, microphone, geolocation, payment, USB and Topics. `/api` responses keep helmet's headers from the Express app. If the app starts loading something from a new origin, add it to the CSP there.
+
 The build never pushes the schema or seeds data, and the API never seeds on startup. Both are manual steps below.
 
 To try the exact build locally before deploying: `pnpm run build:vercel`, then `pnpm run preview:vercel` (serves `.vercel/output` on http://localhost:3100 with the same routing and cache headers, the function running with `NODE_ENV=production` and `VERCEL=1`, using the database in your `.env`). It is a stand-in, not Vercel itself, so the smoke test below is still needed.
@@ -133,6 +135,7 @@ Two things can only be confirmed on Vercel itself; the first three checks cover 
 | 10 | Log in as `buyer@instaveg.com` / `buyer123`, add an item, check out with COD | order placed, visible under Orders | API, auth and database writes |
 | 11 | Vercel → Logs for the deployment | one JSON object per request; no "does not use Neon's pooled" warning | JSON logging and pooled `DATABASE_URL` |
 | 12 | Preview only: confirm the order from step 10 is in the **dev** branch, not production | | Preview is isolated from production data |
+| 13 | `curl -I` on `/` and on `/api/healthz`; DevTools console on the home page | `/` has `content-security-policy` and `x-frame-options: DENY`; `/api/healthz` has helmet's `x-frame-options: SAMEORIGIN`; no CSP errors in the console | website security headers (M17), and that the `/api` exclusion works on Vercel |
 
 ## Fallbacks
 
