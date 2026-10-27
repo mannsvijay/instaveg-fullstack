@@ -29,8 +29,6 @@ The findings below are kept as originally recorded. This table tracks where each
 | M10 | Fixed (Batch 6) | Checkout adds each item's quantity to `orderCount` in the checkout transaction; cancelling subtracts it (never below 0) with the stock restore |
 | M11 | Fixed (Batch 6) | Review form on ProductDetail for buyers the new `GET /products/{id}/reviews/eligibility` endpoint allows (checks only the caller's own orders and reviews) |
 | M12 | Fixed (Batch 6) | Dev/preview servers bind to localhost with Vite's host check; `DEV_HOST=0.0.0.0` opts in to network access (host check stays on) |
-| M13 | Admin Sellers page only lists pending applications; there is no way to suspend or reactivate a seller from the UI (the API already supports the status change). Batch 6 | `pages/admin/Sellers.tsx`; no admin endpoint lists approved/suspended sellers | Add `GET /admin/sellers?status=` and Suspend/Reactivate buttons with confirmation |
-| M14 | Admin Orders status dropdown offers every status, although the API only accepts the next step or a cancel where allowed (C2), so most choices fail. Batch 6 | `pages/admin/Orders.tsx` | Offer only the valid next status and "cancelled" when allowed |
 | M13 | Fixed (Batch 6) | Admin-only `GET /admin/sellers?status=`; Sellers page tabs (pending/approved/suspended) with Suspend and Reactivate behind a confirm dialog |
 | M14 | Fixed (Batch 6) | Admin status dropdown offers only the current status, the next step and "cancelled" where allowed; disabled for delivered/cancelled |
 | L1–L5 | Fixed (Batch 5) | Replit branding, plugins, config, assets and sandbox removed |
@@ -41,6 +39,7 @@ The findings below are kept as originally recorded. This table tracks where each
 | L10 | Open | Replace with real Pexels/Pixabay/Unsplash photos |
 | L11 | Open | Drop `orders.razorpay_order_id` in a future migration |
 | M15 | Fixed (Batch 8) | `trust proxy` = 1 only when `VERCEL=1`: Vercel overwrites `X-Forwarded-For` with the client IP, so `req.ip` (and the auth rate limit) is the real client; elsewhere `X-Forwarded-For` is ignored |
+| Deployment (§4, Batch 8) | Done | Live at https://instaveg.vercel.app: Vercel (`main` = production, function in `sin1`) + Neon production branch, production seed profile. Git build used `.vercel/output`, no fallback needed; see `docs/DEPLOYMENT.md` → Live deployment |
 
 ---
 

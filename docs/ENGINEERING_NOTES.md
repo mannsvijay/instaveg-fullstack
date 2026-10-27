@@ -73,14 +73,28 @@ product photos were frequently wrong or reused across products.
   no Razorpay fields).
 - 16 business-rule tests covering H5, H7, H8, H9, H10, H12, L9, M1, M2, M8, M10, M11 and M13,
   including a checkout that rolls back when a later item is out of stock.
-- 7 hardening tests covering M4: JSON 404, malformed JSON, security headers, login and register
-  rate limits, and CORS for allowed and disallowed origins.
+- 9 hardening tests covering M4 and M15: JSON 404, malformed JSON, security headers, login and
+  register rate limits, CORS for allowed and disallowed origins, and `trust proxy` (spoofed
+  `X-Forwarded-For` ignored locally, per-client limits behind Vercel).
 
 The tests refuse to run with `NODE_ENV=production` or against a non-local `API_URL`, use their own
 temporary products (slug prefix `security-test-`) and never modify seeded data.
 
+## Deployment
+
+- Live at https://instaveg.vercel.app: one Vercel project, `main` = production, other branches get
+  Preview deployments against the Neon dev branch.
+- `pnpm run build:vercel` writes Vercel's Build Output API directory itself: the Vite build as
+  static files and the API bundled by esbuild into one Node.js 24 function in `sin1`, next to Neon
+  in AWS `ap-southeast-1`. Routing and cache headers live in `build-vercel.mjs`, not `vercel.json`.
+- The API checks `DATABASE_URL` and `SESSION_SECRET` at startup, logs JSON, trusts exactly one proxy
+  hop on Vercel (M15) and uses a small pool against Neon's pooled endpoint. Nothing pushes the
+  schema or seeds during the build or at startup; the production schema push and seed are manual,
+  reading only `.env.production.local`.
+- `pnpm run preview:vercel` serves the same build output locally. Setup, settings and the
+  smoke-test results are in `docs/DEPLOYMENT.md`.
+
 ## Still open
 
-See the status table in `docs/AUDIT.md`: a few images not yet in the studio style (L10), dropping
-the unused `razorpay_order_id` column (L11), and `trust proxy` for the deployment (M15). Deployment
-to Vercel and Neon follows in Batch 8.
+See the status table in `docs/AUDIT.md`: a few images not yet in the studio style (L10) and
+dropping the unused `razorpay_order_id` column (L11).
