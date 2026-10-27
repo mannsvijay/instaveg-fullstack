@@ -7,6 +7,33 @@ Legend: **Confirmed** = verified by reading code or running a command. **Likely*
 
 ---
 
+## Status
+
+The findings below are kept as originally recorded. This table tracks where each item stands.
+
+| ID | Status | Notes |
+|---|---|---|
+| C1–C7 | Fixed (Batch 2) | Order/product access control, payment hardening, required `SESSION_SECRET`, address ownership |
+| H1, H2 | Fixed (Batch 1) | Build passes; idempotent slug-keyed seed |
+| H3 | Fixed (Batch 4) | Self-hosted, credited, verified images; see L10 for the remaining studio-style photos |
+| H4 | Resolved: COD-only by design (Batch 6) | Razorpay payment endpoints, schemas and client code removed; see L11 |
+| H5, H7, H8, H9, H10, H11, H12 | Fixed (Batch 3) | Seller approval, multi-seller checkout, validation and stock, editing, pricing, admin products, stock restore |
+| H6 | Fixed (Batch 0) | Cross-platform local development |
+| M1, M2, M8 | Fixed (Batch 3) | Review rules, atomic checkout, role enum |
+| M3 | Fixed (Batch 5) | README rewritten, stale docs removed |
+| M4 | Open (Batch 6) | |
+| M5 | Resolved: obsolete (Batch 6) | The Razorpay verify flow it described was removed (client in Batch 3, API in H4); COD checkout has no payment step |
+| M6 | Resolved: obsolete (Batch 6) | Checkout is COD-only and runs as one transaction (M2); there is no online payment that could be abandoned after the cart is cleared |
+| M7, M9, M10, M11, M12, M13, M14 | Open (Batch 6) | |
+| L1–L5 | Fixed (Batch 5) | Replit branding, plugins, config, assets and sandbox removed |
+| L6 | Fixed (Batch 4) | Unreferenced images removed |
+| L7, L9 | Open (Batch 6) | |
+| L8 | Fixed (Batch 3) | Full-width COD card |
+| L10 | Open | Replace with real Pexels/Pixabay/Unsplash photos |
+| L11 | Open | Drop `orders.razorpay_order_id` in a future migration |
+
+---
+
 ## 1. Actual architecture (verified)
 
 | Layer | Technology | Location |
