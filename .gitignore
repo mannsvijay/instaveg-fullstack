@@ -51,6 +51,7 @@ Thumbs.db
 # Environment files: never commit secrets. Only the placeholder template is tracked.
 .env
 .env.*
+.env.production.local
 !.env.example
 
 # Vercel build output (Build Output API) and CLI project link
