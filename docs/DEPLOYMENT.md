@@ -25,6 +25,51 @@ The build never pushes the schema or seeds data, and the API never seeds on star
 
 To try the exact build locally before deploying: `pnpm run build:vercel`, then `pnpm run preview:vercel` (serves `.vercel/output` on http://localhost:3100 with the same routing and cache headers, the function running with `NODE_ENV=production` and `VERCEL=1`, using the database in your `.env`). It is a stand-in, not Vercel itself, so the smoke test below is still needed.
 
+## Live deployment
+
+Production runs at **https://instaveg.vercel.app**, built from `main` against the Neon production branch, seeded with the production profile (32 catalog products).
+
+What happened on the first deployment (`fix/audit` Preview, then `main` Production after pull request #1):
+
+- The Git-triggered build used the `.vercel/output` written by `pnpm run build:vercel` (unknown 1 confirmed).
+- `/api/...` paths reached Express unchanged after the rewrite (unknown 2 confirmed).
+- Smoke checks 1–3 passed; no fallback was needed. Fallbacks A and B below are kept for reference only.
+
+Project settings in use (no secret values recorded here):
+
+| Setting | Value |
+|---|---|
+| Framework Preset | Other (`vercel.json`: `framework: null`, build command `pnpm run build:vercel`) |
+| Root Directory | `./` |
+| Install Command / Output Directory | not overridden |
+| Node.js Version | 24.x |
+| Function Region | Singapore (`sin1`) |
+| Production Branch | `main` |
+| `DATABASE_URL` | Production: Neon production branch, pooled. Preview: Neon dev branch, pooled |
+| `SESSION_SECRET` | separate random values for Production and Preview |
+| `ENABLE_EXPERIMENTAL_COREPACK` | `1` (Production and Preview) |
+| `CORS_ORIGINS` | unset |
+| Deployment Protection | Standard Protection (previews private) |
+
+Read-only production check on 2026-10-28 (curl, no login, no data changed):
+
+| Request | Result |
+|---|---|
+| `/api/healthz` | 200 `{"status":"ok"}`; `x-vercel-id: bom1::sin1::…` (edge Mumbai, function Singapore) |
+| `/api/products?limit=100` | 200, `total: 32` |
+| `/api/does-not-exist` | 404 `{"error":"Not found"}` (JSON) |
+| `/product/5`, `/` | 200 `index.html`, `cache-control: no-cache` |
+| `/images/products/tomato.webp` | 200 `image/webp`, `public, max-age=604800, stale-while-revalidate=86400` |
+| `/images/products/missing.webp` | 404 from Vercel (not the app's HTML) |
+| `/assets/index-*.js` | 200, `public, max-age=31536000, immutable` |
+| API security headers | helmet's CSP, `strict-transport-security`, `x-content-type-options: nosniff`, `x-frame-options: SAMEORIGIN`, `referrer-policy: no-referrer`, COOP/CORP; no `x-powered-by` |
+
+Observations, not yet changed:
+
+- Static responses (the HTML, assets, images) carry only Vercel's own `strict-transport-security`; helmet's headers (CSP, `x-frame-options`, …) apply to `/api` only. Adding them to static routes would be a `config.json` header change in `build-vercel.mjs`.
+- The `/images/*` cache header also applies to a 404 for a missing image.
+- API responses get Vercel's default `cache-control: public, max-age=0, must-revalidate`, so they are not cached.
+
 ## Environments and databases
 
 | Where | Neon branch | Connection string | `SESSION_SECRET` |
@@ -136,7 +181,7 @@ Two things can only be confirmed on Vercel itself; the first three checks cover 
 
 ## Fallbacks
 
-Use these only if the smoke test shows Vercel did not use `.vercel/output` (check 1 or 2 fails) or the `/api` path is not preserved (check 3 fails).
+Use these only if the smoke test shows Vercel did not use `.vercel/output` (check 1 or 2 fails) or the `/api` path is not preserved (check 3 fails). Neither was needed for the live deployment.
 
 ### Fallback A: `api/` directory and `vercel.json` rewrites
 
