@@ -49,6 +49,7 @@ import type {
   ProductUpdate,
   RegisterInput,
   Review,
+  ReviewEligibility,
   ReviewInput,
   Seller,
   SellerApproval,
@@ -1351,6 +1352,83 @@ export const useCreateReview = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCreateReviewMutationOptions(options));
     }
+
+export const getGetReviewEligibilityUrl = (id: number,) => {
+
+
+
+
+  return `/api/products/${id}/reviews/eligibility`
+}
+
+/**
+ * @summary Whether the signed-in user may review this product (only checks the caller's own orders and reviews)
+ */
+export const getReviewEligibility = async (id: number, options?: RequestInit): Promise<ReviewEligibility> => {
+
+  return customFetch<ReviewEligibility>(getGetReviewEligibilityUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReviewEligibilityQueryKey = (id: number,) => {
+    return [
+    `/api/products/${id}/reviews/eligibility`
+    ] as const;
+    }
+
+
+export const getGetReviewEligibilityQueryOptions = <TData = Awaited<ReturnType<typeof getReviewEligibility>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReviewEligibility>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReviewEligibilityQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReviewEligibility>>> = ({ signal }) => getReviewEligibility(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReviewEligibility>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetReviewEligibilityQueryResult = NonNullable<Awaited<ReturnType<typeof getReviewEligibility>>>
+export type GetReviewEligibilityQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Whether the signed-in user may review this product (only checks the caller's own orders and reviews)
+ */
+
+export function useGetReviewEligibility<TData = Awaited<ReturnType<typeof getReviewEligibility>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReviewEligibility>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetReviewEligibilityQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetCartUrl = () => {
 

@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { ShoppingCart, Heart, Star, Leaf, Minus, Plus, ArrowLeft, CheckCircle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ProductImage } from "@/components/ProductImage";
+import { ReviewForm } from "@/components/ReviewForm";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -179,6 +180,7 @@ export default function ProductDetail() {
         )}
 
         {/* Reviews */}
+        <ReviewForm productId={productId} />
         {Array.isArray(reviews) && reviews.length > 0 && (
           <div className="mb-8">
             <h3 className="font-semibold mb-4">Customer Reviews</h3>

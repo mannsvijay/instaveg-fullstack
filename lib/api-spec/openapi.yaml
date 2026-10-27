@@ -368,6 +368,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/Review"
 
+  /products/{id}/reviews/eligibility:
+    get:
+      operationId: getReviewEligibility
+      tags: [reviews]
+      summary: Whether the signed-in user may review this product (only checks the caller's own orders and reviews)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Eligibility for the signed-in user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewEligibility"
+
   # CART
   /cart:
     get:
@@ -1513,6 +1532,16 @@ components:
           type: string
 
     # REVIEW
+    ReviewEligibility:
+      type: object
+      required: [canReview]
+      properties:
+        canReview:
+          type: boolean
+        reason:
+          type: ["string", "null"]
+          enum: [not_buyer, no_delivered_order, already_reviewed, null]
+
     Review:
       type: object
       required: [id, productId, userId, rating, createdAt]

@@ -44,6 +44,8 @@ export * from './registerInput';
 export * from './registerInputRole';
 export * from './revenueDayItem';
 export * from './review';
+export * from './reviewEligibility';
+export * from './reviewEligibilityReason';
 export * from './reviewInput';
 export * from './seller';
 export * from './sellerApproval';

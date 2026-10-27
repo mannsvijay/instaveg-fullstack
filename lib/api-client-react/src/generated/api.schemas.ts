@@ -419,6 +419,24 @@ export interface OrderStatusUpdate {
   eta?: string;
 }
 
+/**
+ * @nullable
+ */
+export type ReviewEligibilityReason = typeof ReviewEligibilityReason[keyof typeof ReviewEligibilityReason] | null;
+
+
+export const ReviewEligibilityReason = {
+  not_buyer: 'not_buyer',
+  no_delivered_order: 'no_delivered_order',
+  already_reviewed: 'already_reviewed',
+} as const;
+
+export interface ReviewEligibility {
+  canReview: boolean;
+  /** @nullable */
+  reason?: ReviewEligibilityReason;
+}
+
 export interface Review {
   id: number;
   productId: number;

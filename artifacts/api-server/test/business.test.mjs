@@ -250,3 +250,20 @@ test("M1: only a buyer with a delivered order may review, once", async () => {
   assert.equal(product.data.reviewCount, 1);
   assert.equal(product.data.rating, 4);
 });
+test("M11: review eligibility only reflects the caller's own orders and reviews", async () => {
+  const eligibility = (who, id) => api("GET", `/products/${id}/reviews/eligibility`, who?.token);
+  assert.equal((await eligibility(null, s.p1.id)).status, 401, "requires a session");
+  assert.deepEqual((await eligibility(s.ramesh, s.p1.id)).data, { canReview: false, reason: "not_buyer" });
+  assert.deepEqual((await eligibility(s.buyer2, s.p3.id)).data, { canReview: false, reason: "already_reviewed" });
+  assert.equal((await eligibility(s.buyer2, 999999999)).status, 404);
+
+  // The demo buyer has no delivered order for p2, even though buyer2 has orders containing it.
+  assert.deepEqual((await eligibility(s.buyer, s.p2.id)).data, { canReview: false, reason: "no_delivered_order" });
+  const address = await addAddress(api, s.buyer, createdAddresses);
+  await setCart(api, s.buyer, [[s.p2.id, 1]]);
+  const placed = await checkout(api, s.buyer, address);
+  assert.equal(placed.status, 201, JSON.stringify(placed.data));
+  assert.deepEqual((await eligibility(s.buyer, s.p2.id)).data, { canReview: false, reason: "no_delivered_order" }, "pending is not enough");
+  await advanceToDelivered(placed.data[0].id, s.arjun.token);
+  assert.deepEqual((await eligibility(s.buyer, s.p2.id)).data, { canReview: true, reason: null });
+});

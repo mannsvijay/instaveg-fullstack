@@ -224,6 +224,46 @@ router.get("/products/:id/reviews", async (req, res): Promise<void> => {
   res.json(rows);
 });
 
+// Review rules (M1) for the caller only: never looks at other users' orders or reviews.
+async function hasDeliveredPurchase(userId: number, productId: number): Promise<boolean> {
+  const [purchase] = await db.select({ id: ordersTable.id }).from(ordersTable)
+    .innerJoin(orderItemsTable, eq(orderItemsTable.orderId, ordersTable.id))
+    .where(and(eq(ordersTable.userId, userId), eq(ordersTable.status, "delivered"), eq(orderItemsTable.productId, productId)))
+    .limit(1);
+  return !!purchase;
+}
+
+// M11: lets the product page show the review form only to eligible buyers.
+router.get("/products/:id/reviews/eligibility", requireAuth, async (req, res): Promise<void> => {
+  const user = (req as typeof req & { user: { id: number; role: string } }).user;
+  const id = parseId(req.params.id);
+  if (id === null) {
+    res.status(400).json({ error: "Invalid product id" });
+    return;
+  }
+  const [product] = await db.select({ id: productsTable.id }).from(productsTable)
+    .where(and(eq(productsTable.id, id), approvedSellerProducts()));
+  if (!product) {
+    res.status(404).json({ error: "Product not found" });
+    return;
+  }
+  if (user.role !== "buyer") {
+    res.json({ canReview: false, reason: "not_buyer" });
+    return;
+  }
+  const [existing] = await db.select({ id: reviewsTable.id }).from(reviewsTable)
+    .where(and(eq(reviewsTable.productId, id), eq(reviewsTable.userId, user.id)));
+  if (existing) {
+    res.json({ canReview: false, reason: "already_reviewed" });
+    return;
+  }
+  if (!(await hasDeliveredPurchase(user.id, id))) {
+    res.json({ canReview: false, reason: "no_delivered_order" });
+    return;
+  }
+  res.json({ canReview: true, reason: null });
+});
+
 router.post("/products/:id/reviews", requireAuth, async (req, res): Promise<void> => {
   const user = (req as typeof req & { user: { id: number; role: string } }).user;
   const id = parseId(req.params.id);
@@ -244,11 +284,7 @@ router.post("/products/:id/reviews", requireAuth, async (req, res): Promise<void
   }
   const { rating, comment } = parsed.data;
   // Only buyers with a delivered order containing this product may review.
-  const [purchase] = await db.select({ id: ordersTable.id }).from(ordersTable)
-    .innerJoin(orderItemsTable, eq(orderItemsTable.orderId, ordersTable.id))
-    .where(and(eq(ordersTable.userId, user.id), eq(ordersTable.status, "delivered"), eq(orderItemsTable.productId, id)))
-    .limit(1);
-  if (user.role !== "buyer" || !purchase) {
+  if (user.role !== "buyer" || !(await hasDeliveredPurchase(user.id, id))) {
     res.status(403).json({ error: "Only buyers who received this product can review it" });
     return;
   }

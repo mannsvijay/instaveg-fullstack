@@ -369,6 +369,19 @@ export const CreateReviewBody = zod.object({
 
 
 /**
+ * @summary Whether the signed-in user may review this product (only checks the caller's own orders and reviews)
+ */
+export const GetReviewEligibilityParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetReviewEligibilityResponse = zod.object({
+  "canReview": zod.boolean(),
+  "reason": zod.union([zod.literal('not_buyer'),zod.literal('no_delivered_order'),zod.literal('already_reviewed'),zod.literal(null)]).nullish()
+})
+
+
+/**
  * @summary Get user's cart
  */
 export const GetCartResponse = zod.object({
