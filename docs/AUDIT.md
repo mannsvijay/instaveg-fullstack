@@ -40,7 +40,7 @@ The findings below are kept as originally recorded. This table tracks where each
 | L8 | Fixed (Batch 3) | Full-width COD card |
 | M16 | Fixed (post-launch) | Restored the categories query and the row of 8 category links with images on Home (removed by `e4ad4a4`) |
 | M17 | Fixed (post-launch) | CSP (incl. Google Fonts), `X-Frame-Options: DENY`/`frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` on every non-`/api` path via `build-vercel.mjs`; Playwright check of 6 pages on the local preview: 0 CSP violations, 0 console errors |
-| L12 | Open | Image 404 cached for 7 days |
+| L12 | Fixed (post-launch) | The `/images` cache header route is generated from the image files that exist, so a missing image 404 gets no 7-day cache; the local preview now keeps route headers on 404s as Vercel does |
 | L10 | Open | Replace with real Pexels/Pixabay/Unsplash photos |
 | L11 | Open | Drop `orders.razorpay_order_id` in a future migration |
 | M15 | Fixed (Batch 8) | `trust proxy` = 1 only when `VERCEL=1`: Vercel overwrites `X-Forwarded-For` with the client IP, so `req.ip` (and the auth rate limit) is the real client; elsewhere `X-Forwarded-For` is ignored |
