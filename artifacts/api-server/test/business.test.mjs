@@ -193,6 +193,20 @@ test("H12: cancelling an order restores exactly its items' stock", async () => {
   assert.equal(await getStock(api, s.admin.token, s.p3.id), stockBefore.p3, "p3 restored");
   assert.equal(await getStock(api, s.admin.token, s.p2.id), stockBefore.p2 - 1, "other seller's order untouched");
 });
+test("M10: checkout increments orderCount by quantity; cancel decrements it", async () => {
+  const orderCount = async (id) => (await api("GET", `/products/${id}`, s.admin.token)).data.orderCount;
+  const before = { p1: await orderCount(s.p1.id), p3: await orderCount(s.p3.id) };
+  await setCart(api, s.buyer2, [[s.p1.id, 2], [s.p3.id, 3]]);
+  const placed = await checkout(api, s.buyer2, s.address);
+  assert.equal(placed.status, 201, JSON.stringify(placed.data));
+  assert.equal(await orderCount(s.p1.id), before.p1 + 2, "p1 +2");
+  assert.equal(await orderCount(s.p3.id), before.p3 + 3, "p3 +3");
+
+  const cancelled = await api("PATCH", `/orders/${placed.data[0].id}`, s.buyer2.token, { status: "cancelled" });
+  assert.equal(cancelled.status, 200);
+  assert.equal(await orderCount(s.p1.id), before.p1, "p1 restored");
+  assert.equal(await orderCount(s.p3.id), before.p3, "p3 restored");
+});
 test("M2: checkout rolls back completely when a later item is out of stock", async () => {
   await setCart(api, s.buyer2, [[s.p1.id, 1], [s.p2.id, 2]]);
   // p2 (higher id, decremented after p1) drops below the cart quantity.

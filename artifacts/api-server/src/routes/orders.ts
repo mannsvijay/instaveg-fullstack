@@ -167,7 +167,8 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
       // Decrement stock only if enough is left; otherwise roll everything back.
       for (const line of lines) {
         const [updated] = await tx.update(productsTable)
-          .set({ stock: sql`${productsTable.stock} - ${line.quantity}` })
+          // M10: orderCount (used by "Trending") grows by the quantity sold.
+          .set({ stock: sql`${productsTable.stock} - ${line.quantity}`, orderCount: sql`${productsTable.orderCount} + ${line.quantity}` })
           .where(and(eq(productsTable.id, line.productId), gte(productsTable.stock, line.quantity)))
           .returning({ id: productsTable.id });
         if (!updated) {
@@ -242,7 +243,10 @@ router.patch("/orders/:id", requireAuth, async (req, res): Promise<void> => {
       const items = await tx.select({ productId: orderItemsTable.productId, quantity: orderItemsTable.quantity })
         .from(orderItemsTable).where(eq(orderItemsTable.orderId, updated.id));
       for (const item of items) {
-        await tx.update(productsTable).set({ stock: sql`${productsTable.stock} + ${item.quantity}` })
+        await tx.update(productsTable).set({
+          stock: sql`${productsTable.stock} + ${item.quantity}`,
+          orderCount: sql`greatest(${productsTable.orderCount} - ${item.quantity}, 0)`, // M10
+        })
           .where(eq(productsTable.id, item.productId));
       }
     }
