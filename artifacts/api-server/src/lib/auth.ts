@@ -1,7 +1,15 @@
 import jwt from "jsonwebtoken";
 import { type Request, type Response, type NextFunction } from "express";
 
-const JWT_SECRET = process.env.SESSION_SECRET || "instaveg-secret-key";
+function requireSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("SESSION_SECRET must be set and at least 32 characters long");
+  }
+  return secret;
+}
+
+const JWT_SECRET = requireSessionSecret();
 
 export function signToken(payload: { id: number; email: string; role: string }): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
