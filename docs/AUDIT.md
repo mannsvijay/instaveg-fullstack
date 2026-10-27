@@ -32,7 +32,7 @@ The findings below are kept as originally recorded. This table tracks where each
 | M13 | Admin Sellers page only lists pending applications; there is no way to suspend or reactivate a seller from the UI (the API already supports the status change). Batch 6 | `pages/admin/Sellers.tsx`; no admin endpoint lists approved/suspended sellers | Add `GET /admin/sellers?status=` and Suspend/Reactivate buttons with confirmation |
 | M14 | Admin Orders status dropdown offers every status, although the API only accepts the next step or a cancel where allowed (C2), so most choices fail. Batch 6 | `pages/admin/Orders.tsx` | Offer only the valid next status and "cancelled" when allowed |
 | M13 | Fixed (Batch 6) | Admin-only `GET /admin/sellers?status=`; Sellers page tabs (pending/approved/suspended) with Suspend and Reactivate behind a confirm dialog |
-| M14 | Open (Batch 6) | |
+| M14 | Fixed (Batch 6) | Admin status dropdown offers only the current status, the next step and "cancelled" where allowed; disabled for delivered/cancelled |
 | L1–L5 | Fixed (Batch 5) | Replit branding, plugins, config, assets and sandbox removed |
 | L6 | Fixed (Batch 4) | Unreferenced images removed |
 | L7 | Fixed (Batch 6) | `scrollbar-hide` utility defined; the chips still scroll |
