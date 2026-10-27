@@ -1,3 +1,4 @@
+import "./lib/env"; // must stay first: validates configuration before anything connects
 import { connectDB } from "@workspace/db";
 import app from "./app";
 import { logger } from "./lib/logger";
